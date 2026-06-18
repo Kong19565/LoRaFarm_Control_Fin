@@ -2278,27 +2278,35 @@
       ctx.font='5.5px Sarabun,sans-serif';ctx.fillStyle=sCol;ctx.fillText(n.soil.toFixed(2)+'%',n.x,n.y-1);
     });
 
-    /* === USER MARKERS === */
+    /* === USER MARKERS — person icon === */
     function drawUser(x,y,lbl,col,isMe){
+      /* pulsing halo for own device */
       if(isMe){
         const p=(Date.now()%1600)/1600;
-        ctx.beginPath();ctx.arc(x,y,10+p*6,0,Math.PI*2);
-        ctx.strokeStyle=col;ctx.globalAlpha=0.35*(1-p);ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;
+        ctx.beginPath();ctx.arc(x,y,14+p*7,0,Math.PI*2);
+        ctx.strokeStyle=col;ctx.globalAlpha=0.3*(1-p);ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;
       }
-      /* crosshair lines */
-      [[x-14,y,x-8,y],[x+8,y,x+14,y],[x,y-14,x,y-8],[x,y+8,x,y+14]].forEach(([x1,y1,x2,y2])=>{
-        ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
-        ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=.7;ctx.stroke();ctx.globalAlpha=1;
-      });
-      /* marker */
-      ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=2;ctx.stroke();
-      ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+      /* white badge background */
+      ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,.93)';ctx.fill();
+      ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();
+      /* head */
+      ctx.beginPath();ctx.arc(x,y-4.5,3.5,0,Math.PI*2);
+      ctx.fillStyle=col;ctx.fill();
+      /* body — arch shape (shoulders) */
+      ctx.beginPath();
+      ctx.moveTo(x-6,y+9);
+      ctx.lineTo(x-6,y+3);
+      ctx.quadraticCurveTo(x-6,y-1,x,y-1);
+      ctx.quadraticCurveTo(x+6,y-1,x+6,y+3);
+      ctx.lineTo(x+6,y+9);
+      ctx.closePath();
+      ctx.fillStyle=col;ctx.fill();
       /* label badge */
       ctx.font='bold 7px Sarabun,sans-serif';ctx.textAlign='center';
       const lw2=ctx.measureText(lbl).width+7;
-      ctx.fillStyle='rgba(255,255,255,.92)';roundRect(ctx,x-lw2/2,y+9,lw2,11,3);ctx.fill();
-      ctx.fillStyle=col;ctx.fillText(lbl,x,y+19);
+      ctx.fillStyle='rgba(255,255,255,.92)';roundRect(ctx,x-lw2/2,y+14,lw2,11,3);ctx.fill();
+      ctx.fillStyle=col;ctx.fillText(lbl,x,y+24);
     }
     drawUser(friendPos.x,friendPos.y,friendPos.label,friendPos.color,false);
     drawUser(myPos.x,myPos.y,myPos.label,myPos.color,true);
