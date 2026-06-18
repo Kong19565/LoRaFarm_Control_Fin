@@ -1,0 +1,2645 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoRaFarm Control — Device Demo</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+
+    :root {
+      /* Palette — bright, farm-friendly */
+      --page-bg:      #dcedc8;      /* ใบอ่อน */
+      --device-a:     #37474f;      /* เครื่องมือภาคสนาม */
+      --device-b:     #263238;
+      --device-edge:  #1a2327;
+      --screen-bg:    #ffffff;
+      --bezel:        #455a64;
+
+      --green:        #2e7d32;      /* เขียวป่า */
+      --green-mid:    #388e3c;
+      --green-light:  #c8e6c9;
+      --green-bg:     #f1f8e9;
+      --green-header: #2e7d32;
+
+      --orange:       #e65100;      /* ส้มเก็บเกี่ยว */
+      --orange-mid:   #f57c00;
+      --orange-light: #fff3e0;
+      --orange-border:#ffcc80;
+
+      --red:          #b71c1c;      /* แดงเตือนภัย */
+      --red-mid:      #c62828;
+      --red-light:    #ffebee;
+      --red-border:   #ef9a9a;
+
+      --blue:         #01579b;
+      --blue-light:   #e3f2fd;
+      --blue-border:  #90caf9;
+
+      --text:         #1a1a1a;
+      --text-mid:     #424242;
+      --text-soft:    #757575;
+      --text-white:   #ffffff;
+      --border:       #e0e0e0;
+      --card-bg:      #ffffff;
+      --stripe:       #f5f5f5;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--page-bg);
+      background-image:
+        radial-gradient(ellipse at 20% 30%, rgba(255,255,255,.55) 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%232e7d32' opacity='.08'/%3E%3C/svg%3E");
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Sarabun', sans-serif;
+      overflow: auto;
+      padding: 24px 16px;
+    }
+
+    /* ─── LAYOUT ─── */
+    .device-wrap { display: flex; align-items: flex-start; gap: 20px; }
+
+    /* ─── DEVICE SHELL ─── */
+    .device {
+      width: 268px;
+      background: linear-gradient(160deg, var(--device-a), var(--device-b));
+      border-radius: 22px;
+      padding: 14px 14px 16px;
+      box-shadow:
+        0 0 0 1px var(--device-edge),
+        0 2px 0 3px #546e7a44,
+        0 40px 80px rgba(0,0,0,.45),
+        inset 0 1px 0 rgba(255,255,255,.08);
+      position: relative;
+      user-select: none;
+    }
+    /* grip strips */
+    .device::before {
+      content:''; position:absolute;
+      left:-5px; top:55px; bottom:55px; width:5px;
+      background: repeating-linear-gradient(180deg,#37474f 0,#37474f 4px,#263238 4px,#263238 8px);
+      border-radius:4px 0 0 4px;
+    }
+    .device::after {
+      content:''; position:absolute;
+      right:-5px; top:55px; bottom:55px; width:5px;
+      background: repeating-linear-gradient(180deg,#37474f 0,#37474f 4px,#263238 4px,#263238 8px);
+      border-radius:0 4px 4px 0;
+    }
+
+    /* device top bar */
+    .device-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 4px 10px;
+    }
+    .device-logo {
+      font-size: 9px; font-weight: 700;
+      color: #90a4ae; letter-spacing: 2px; text-transform: uppercase;
+    }
+    .hw-led {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4caf50;
+      box-shadow: 0 0 0 2px #1b5e2066, 0 0 8px #4caf50;
+      animation: blink 2.5s ease-in-out infinite;
+    }
+    .hw-led.red { background:#ef5350; box-shadow:0 0 0 2px #b71c1c44, 0 0 8px #ef5350; animation:none; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    /* ─── SCREEN ─── */
+    .screen {
+      width: 240px; height: 355px;
+      background: var(--screen-bg);
+      border-radius: 8px;
+      border: 3px solid #1a2327;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 2px 12px rgba(0,0,0,.3);
+    }
+    /* screen-off overlay */
+    .screen-off {
+      display: none; position: absolute; inset: 0;
+      background: #000; z-index: 50; border-radius: 6px;
+      cursor: pointer;
+      align-items: center; justify-content: center;
+    }
+    .screen-off.on { display: flex; }
+    .screen-off::after {
+      content: '⏻  กดเพื่อเปิดหน้าจอ';
+      font-size: 8px; color: rgba(255,255,255,.2);
+      font-family: 'Sarabun', sans-serif;
+    }
+
+    /* ─── PAGES ─── */
+    .page {
+      position: absolute; inset: 0;
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .page.active {
+      display: flex;
+      animation: slideIn .18s ease;
+    }
+    @keyframes slideIn { from{opacity:0;transform:translateX(6px)} to{opacity:1;transform:translateX(0)} }
+
+    /* ─── SCREEN HEADER ─── */
+    .screen-header {
+      background: var(--green-header);
+      padding: 7px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .screen-title {
+      font-size: 12px; font-weight: 700;
+      color: #ffffff; letter-spacing: .3px;
+    }
+    .screen-time {
+      font-size: 11px; font-weight: 600;
+      color: rgba(255,255,255,.85);
+    }
+
+    /* ─── SCROLL BODY ─── */
+    .screen-body {
+      flex: 1; overflow-y: auto; padding: 8px;
+      background: #f9fbe7;
+      scrollbar-width: none;
+    }
+    .screen-body::-webkit-scrollbar { display: none; }
+
+    /* ─── BOTTOM NAV ─── */
+    .screen-nav {
+      border-top: 2px solid var(--green-light);
+      background: #ffffff;
+      display: flex; flex-shrink: 0;
+    }
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 1px;
+      padding: 6px 0 5px;
+      background: none; border: none;
+      border-right: 1px solid #f0f0f0;
+      color: #9e9e9e; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .nav-btn:last-child { border-right: none; }
+    .nav-btn .nav-icon { font-size: 16px; line-height: 1; }
+    .nav-btn .nav-label { font-size: 7.5px; font-weight: 700; letter-spacing: .2px; }
+    .nav-btn.active {
+      color: var(--green);
+      background: var(--green-bg);
+      border-top: 2px solid var(--green);
+      margin-top: -2px;
+    }
+    .nav-btn:hover:not(.active) { background: #f5f5f5; color: #555; }
+
+    /* ─── CARDS ─── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--green);
+      border-radius: 6px;
+      padding: 8px 9px;
+      margin-bottom: 7px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .card.orange { border-left-color: var(--orange-mid); }
+    .card.red    { border-left-color: var(--red-mid); }
+    .card-title {
+      font-size: 9px; font-weight: 700;
+      color: var(--green); letter-spacing: .8px;
+      text-transform: uppercase; margin-bottom: 7px;
+    }
+    .card.orange .card-title { color: var(--orange-mid); }
+
+    /* ─── PAGE 1: STATUS ─── */
+    .row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .lbl {
+      font-size: 10px; font-weight: 600; color: var(--text-soft);
+    }
+    .val {
+      font-size: 11px; font-weight: 800; color: var(--text);
+    }
+    .val.g { color: var(--green); }
+    .val.o { color: var(--orange-mid); }
+    .val.r { color: var(--red-mid); }
+
+    /* battery bar */
+    .bat-wrap {
+      height: 8px; background: #e0e0e0; border-radius: 4px;
+      overflow: hidden; margin: 3px 0 5px;
+    }
+    .bat-fill {
+      height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, #388e3c, #66bb6a);
+      transition: width .6s ease;
+    }
+
+    /* signal bars */
+    .sig-bars {
+      display: flex; align-items: flex-end; gap: 3px;
+    }
+    .sig-bar {
+      width: 5px; border-radius: 2px 2px 0 0;
+      background: #e0e0e0; transition: background .3s;
+    }
+    .sig-bar.on { background: var(--green); }
+
+    /* quick stats */
+    .qs-row { display: flex; gap: 5px; }
+    .qs-card {
+      flex: 1; text-align: center;
+      background: var(--green-bg);
+      border: 1px solid var(--green-light);
+      border-radius: 6px; padding: 7px 3px;
+    }
+    .qs-icon { font-size: 18px; }
+    .qs-num {
+      display: block; font-size: 12px; font-weight: 800;
+      color: var(--green); margin: 3px 0 1px;
+    }
+    .qs-lbl { font-size: 8px; font-weight: 600; color: var(--text-soft); }
+
+    /* ─── PAGE 2: FARM ─── */
+    .zone-tabs {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 3px; margin-bottom: 7px;
+    }
+    .zone-tab {
+      flex: 1; padding: 5px 0;
+      background: #fff; border: 1.5px solid var(--border);
+      border-radius: 6px; font-size: 9px; font-weight: 700;
+      color: var(--text-soft); cursor: pointer; text-align: center;
+      transition: all .15s;
+    }
+    .zone-tab.active {
+      background: var(--green); border-color: var(--green);
+      color: #fff;
+    }
+
+    .sensor-row {
+      display: flex; align-items: center;
+      gap: 7px; margin-bottom: 6px;
+    }
+    .s-icon { font-size: 16px; flex-shrink: 0; }
+    .s-info { flex: 1; }
+    .s-name { font-size: 9px; font-weight: 600; color: var(--text-soft); }
+    .s-bar-wrap {
+      height: 6px; background: #e8e8e8; border-radius: 3px; margin-top: 3px;
+    }
+    .s-bar {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, #388e3c, #81c784);
+      transition: width .8s ease;
+    }
+    .s-bar.warn { background: linear-gradient(90deg, var(--orange-mid), #ffb74d); }
+    .s-status {
+      font-size: 7px; font-weight: 800;
+      padding: 2px 5px; border-radius: 5px; flex-shrink: 0;
+      letter-spacing: 0.2px; white-space: nowrap;
+    }
+    .s-status.g { background: #e8f5e9; color: #2e7d32; }
+    .s-status.o { background: #fff3e0; color: #f57c00; }
+    .s-status.r { background: #ffebee; color: #c62828; }
+    .p-s-status {
+      font-size: 6.5px; font-weight: 800;
+      padding: 1px 4px; border-radius: 4px; flex-shrink: 0;
+    }
+    .p-s-status.g { background: #e8f5e9; color: #2e7d32; }
+    .p-s-status.o { background: #fff3e0; color: #f57c00; }
+    .p-s-status.r { background: #ffebee; color: #c62828; }
+    .s-val {
+      font-size: 13px; font-weight: 800; color: var(--text);
+      flex-shrink: 0; text-align: right; min-width: 42px;
+    }
+
+    .act-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid #f5f5f5;
+    }
+    .act-row:last-child { border-bottom: none; }
+    .act-name { font-size: 10px; font-weight: 700; color: var(--text-mid); }
+    .act-sub  { font-size: 8px; font-weight: 600; color: var(--text-soft); margin-top: 1px; }
+    .act-sub.on  { color: var(--green); }
+    .act-sub.off { color: #9e9e9e; }
+
+    /* toggle switch */
+    .tog { position: relative; width: 40px; height: 22px; cursor: pointer; }
+    .tog input { display: none; }
+    .tog-track {
+      position: absolute; inset: 0;
+      border-radius: 11px; background: #ccc;
+      transition: background .2s;
+    }
+    .tog-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,.3);
+      transition: left .2s;
+    }
+    .tog input:checked + .tog-track { background: var(--green); }
+    .tog input:checked ~ .tog-thumb { left: 21px; }
+
+    /* ─── PAGE 3: FARM MAP ─── */
+    #mapCanvas, #b-mapCanvas {
+      display: block; width: 234px; height: 278px; cursor: pointer;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    /* ─── NODE POPUP ─── */
+    .node-popup {
+      display: none; position: absolute;
+      bottom: 40px; left: 3px; right: 3px;
+      background: #fff;
+      border: 2px solid var(--green-light);
+      border-radius: 10px;
+      box-shadow: 0 -6px 24px rgba(0,0,0,.22);
+      z-index: 20; overflow: hidden;
+      animation: popupIn .18s ease;
+    }
+    @keyframes popupIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+    .popup-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 9px 5px;
+      background: var(--green-bg);
+      border-bottom: 1px solid var(--green-light);
+    }
+    .popup-node-id { font-size: 13px; font-weight: 800; color: var(--green); }
+    .popup-zone { font-size: 7.5px; font-weight: 700; color: var(--text-soft); margin-top: 1px; }
+    .popup-rssi { font-size: 8px; font-weight: 700; margin-left: 6px; }
+    .popup-close {
+      font-size: 14px; color: var(--text-soft); cursor: pointer;
+      background: none; border: none; font-family: inherit; padding: 0 2px; line-height: 1;
+    }
+    .popup-body { padding: 5px 9px 4px; }
+    .p-sensor { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+    .p-s-icon { font-size: 11px; flex-shrink: 0; width: 14px; }
+    .p-s-bar-wrap { flex: 1; height: 5px; background: #e8e8e8; border-radius: 3px; }
+    .p-s-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg,#388e3c,#81c784); transition: width .5s; }
+    .p-s-bar.warn { background: linear-gradient(90deg,var(--orange-mid),#ffb74d); }
+    .p-s-val { font-size: 9px; font-weight: 800; min-width: 38px; text-align: right; color: var(--text); }
+    .popup-acts {
+      display: flex; padding: 5px 9px 6px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .p-act { flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+    .p-act + .p-act { border-left: 1px solid #f0f0f0; }
+    .p-act-name { font-size: 8.5px; font-weight: 700; color: var(--text-mid); }
+    /* small toggle for popup */
+    .tog.sm { width: 32px; height: 18px; }
+    .tog.sm .tog-track { border-radius: 9px; }
+    .tog.sm .tog-thumb { width: 12px; height: 12px; top: 3px; left: 3px; }
+    .tog.sm input:checked ~ .tog-thumb { left: 17px; }
+
+    /* ─── PAGE 4: COMM ─── */
+    .online-bar {
+      display: flex; gap: 5px; margin-bottom: 6px;
+    }
+    .online-chip {
+      display: flex; align-items: center; gap: 3px;
+      background: var(--green-bg); border: 1.5px solid var(--green-light);
+      border-radius: 12px; padding: 2px 8px;
+      font-size: 8px; font-weight: 700; color: var(--green);
+    }
+    .online-chip.offline {
+      background: #f5f5f5; border-color: #e0e0e0; color: #9e9e9e;
+    }
+    .o-dot {
+      width: 5px; height: 5px; border-radius: 50%; background: #4caf50;
+    }
+
+    .chat-area {
+      height: 160px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 6px;
+      scrollbar-width: none;
+    }
+    .chat-area::-webkit-scrollbar { display: none; }
+
+    .msg { display: flex; gap: 6px; align-items: flex-start; }
+    .msg.me { flex-direction: row-reverse; }
+    .msg-av {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--green-light);
+      border: 2px solid var(--green);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 800; color: var(--green); flex-shrink: 0;
+    }
+    .msg.me .msg-av { background: var(--green); color: #fff; border-color: var(--green); }
+    .msg-bubble {
+      max-width: 155px;
+      background: #ffffff; border: 1px solid var(--border);
+      border-radius: 0 8px 8px 8px; padding: 5px 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .msg.me .msg-bubble {
+      background: var(--green-bg); border-color: var(--green-light);
+      border-radius: 8px 0 8px 8px;
+    }
+    .msg-who { font-size: 8px; font-weight: 700; color: var(--green); margin-bottom: 2px; }
+    .msg-text { font-size: 10px; color: var(--text); line-height: 1.45; }
+    .msg-ts { font-size: 7px; color: var(--text-soft); margin-top: 2px; text-align: right; }
+
+    .chat-input-row { display: flex; gap: 5px; margin-top: 6px; }
+    .chat-input {
+      flex: 1; background: #fff; border: 1.5px solid var(--border);
+      border-radius: 6px; padding: 5px 8px;
+      font-family: 'Sarabun', sans-serif; font-size: 10px; color: var(--text);
+      outline: none;
+    }
+    .chat-input::placeholder { color: #bbb; }
+    .chat-input:focus { border-color: var(--green); }
+    .btn-send {
+      padding: 5px 10px;
+      background: var(--green); border: none; border-radius: 6px;
+      color: #fff; font-family: 'Sarabun', sans-serif;
+      font-size: 10px; font-weight: 700; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-send:hover { background: #388e3c; }
+
+    .emergency-row { display: flex; gap: 6px; margin-top: 7px; }
+    .btn-loc {
+      flex: 1; padding: 8px 0;
+      background: var(--blue-light); border: 1.5px solid var(--blue-border);
+      border-radius: 7px; color: var(--blue);
+      font-family: 'Sarabun', sans-serif; font-size: 9.5px; font-weight: 700;
+      cursor: pointer; text-align: center; transition: background .15s;
+    }
+    .btn-loc:hover { background: #bbdefb; }
+    .btn-sos {
+      flex: 1; padding: 8px 0;
+      background: var(--red-light); border: 2px solid var(--red-border);
+      border-radius: 7px; color: var(--red-mid);
+      font-family: 'Sarabun', sans-serif; font-size: 9.5px; font-weight: 800;
+      cursor: pointer; text-align: center; letter-spacing: .5px;
+      transition: all .15s;
+    }
+    .btn-sos:hover { background: #ffcdd2; border-color: #e57373; }
+    .btn-sos.active {
+      background: var(--red-mid); border-color: var(--red);
+      color: #fff;
+      animation: sosFlash .6s ease-in-out infinite;
+    }
+    @keyframes sosFlash { 0%,100%{opacity:1} 50%{opacity:.7} }
+
+    /* ─── SIDE BUTTONS ─── */
+    .dev-side-btns {
+      position: absolute; right: -18px; top: 115px;
+      display: flex; flex-direction: column; gap: 8px; z-index: 10;
+    }
+    .dev-side-btns.left-side { right: auto; left: -18px; }
+    .dsb {
+      width: 16px; cursor: pointer; border: 1px solid #1a2327;
+      background: linear-gradient(180deg,#546e7a,#37474f);
+      color: #b0bec5; font-size: 5.5px; font-weight: 800; letter-spacing: .3px;
+      box-shadow: 2px 1px 5px rgba(0,0,0,.5), inset 1px 0 0 rgba(255,255,255,.06);
+      transition: transform .08s; padding: 0; line-height: 1.2;
+      border-radius: 0 5px 5px 0;
+    }
+    .dev-side-btns.left-side .dsb { border-radius: 5px 0 0 5px; }
+    .dsb-pwr { height: 26px; }
+    .dsb-sos {
+      height: 42px;
+      background: linear-gradient(180deg,#b71c1c,#7f0000);
+      color: #ffcdd2; border-color: #7f0000;
+      font-size: 6.5px; letter-spacing: 1px;
+    }
+    .dsb:active { transform: translateX(2px); }
+    .dev-side-btns.left-side .dsb:active { transform: translateX(-2px); }
+
+    /* ─── VIRTUAL KEYBOARD ─── */
+    .comm-body {
+      flex: 1; display: flex; flex-direction: column;
+      overflow: hidden; background: #f9fbe7; padding: 7px 8px 0;
+    }
+    .chat-area { flex: 1; min-height: 40px; height: auto; }
+    .vkb {
+      display: none; flex-direction: column; gap: 2px;
+      background: #cfd8dc; padding: 3px 2px 5px; flex-shrink: 0;
+      margin: 4px -8px 0;
+    }
+    .vkb.open { display: flex; }
+    .vkb-row { display: flex; gap: 2px; justify-content: center; }
+    .vkb-key {
+      flex: 1; height: 21px; max-width: 21px; min-width: 0;
+      background: #fff; border: 1px solid #b0bec5; border-radius: 3px;
+      font-size: 9px; font-weight: 700; cursor: pointer;
+      font-family: 'Sarabun', sans-serif; color: #263238; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      user-select: none; box-shadow: 0 1px 0 #90a4ae; padding: 0;
+    }
+    .vkb-key:active { background: #e8f5e9; transform: translateY(1px); box-shadow: none; }
+    .vkb-key.act { background: #b0bec5; max-width: 30px; font-size: 8px; }
+    .vkb-key.spc { max-width: 90px; }
+    .vkb-key.send-key { background: var(--green); color: #fff; max-width: 30px; }
+    .vkb-toggle {
+      padding: 4px 7px; background: #eceff1; border: 1.5px solid #b0bec5;
+      border-radius: 6px; font-size: 13px; cursor: pointer; flex-shrink: 0;
+      line-height: 1;
+    }
+    .vkb-toggle.on { background: var(--green-light); border-color: var(--green); }
+
+    /* ─── SOS HOLD ─── */
+    .sos-hold-wrap { flex: 1; position: relative; }
+    .sos-hold-wrap .btn-sos { width: 100%; }
+    .sos-prog-bar {
+      position: absolute; bottom: 0; left: 0; height: 4px; width: 0%;
+      background: var(--red-mid); border-radius: 0 0 5px 5px;
+      transition: none; pointer-events: none;
+    }
+    /* Side SOS hold progress bar overlay */
+    .dsb-sos { position: relative; overflow: hidden; }
+    .dsb-sos-fill {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 0%;
+      background: rgba(255,255,255,.35); pointer-events: none;
+      transition: none;
+    }
+
+    /* ─── SOS REASON MODAL ─── */
+    .sos-reason-modal {
+      display: none; position: absolute; inset: 0; z-index: 55;
+      background: rgba(0,0,0,.65);
+      align-items: center; justify-content: center; border-radius: 6px;
+    }
+    .sos-reason-modal.open { display: flex; animation: popupIn .2s ease; }
+    .srm-box {
+      background: #fff; border-radius: 12px; padding: 12px 10px;
+      width: 208px; box-shadow: 0 6px 24px rgba(0,0,0,.4);
+    }
+    .srm-title {
+      font-size: 11px; font-weight: 800; color: var(--red-mid);
+      text-align: center; margin-bottom: 8px;
+      padding-bottom: 6px; border-bottom: 2px solid var(--red-light);
+    }
+    .srm-opts {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 7px;
+    }
+    .srm-opt {
+      padding: 8px 4px; background: var(--red-light);
+      border: 1.5px solid var(--red-border); border-radius: 7px;
+      font-family: 'Sarabun', sans-serif; font-size: 9.5px; font-weight: 700;
+      color: var(--red-mid); cursor: pointer; text-align: center; line-height: 1.5;
+    }
+    .srm-opt:hover { background: #ffcdd2; }
+    .srm-cancel {
+      width: 100%; padding: 6px; background: #f5f5f5;
+      border: 1px solid #e0e0e0; border-radius: 7px;
+      font-family: 'Sarabun', sans-serif; font-size: 9px;
+      font-weight: 700; color: #757575; cursor: pointer;
+    }
+
+    /* ─── SOS FULL ALERT ─── */
+    .sos-alert-full {
+      display: none; position: absolute; inset: 0; z-index: 60;
+      border-radius: 6px; flex-direction: column;
+      align-items: center; justify-content: center; gap: 7px;
+    }
+    .sos-alert-full.open {
+      display: flex;
+      animation: sosAlertBg .5s ease-in-out infinite alternate;
+    }
+    @keyframes sosAlertBg {
+      from { background: #b71c1c; } to { background: #e53935; }
+    }
+    .sos-alert-icon { font-size: 42px; animation: blink .5s ease-in-out infinite; }
+    .sos-alert-title { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+    .sos-alert-from { font-size: 11px; color: #ffcdd2; font-weight: 600; }
+    .sos-alert-reason-text {
+      font-size: 14px; font-weight: 800; color: #fff;
+      background: rgba(0,0,0,.3); padding: 5px 14px; border-radius: 6px;
+    }
+    .sos-alert-btns { display: flex; gap: 8px; margin-top: 4px; }
+    .sos-alert-btn {
+      padding: 8px 13px; border: none; border-radius: 7px;
+      font-family: 'Sarabun', sans-serif; font-size: 10px;
+      font-weight: 800; cursor: pointer;
+    }
+    .sos-alert-btn.nav-btn-sos { background: #fff; color: var(--red-mid); }
+    .sos-alert-btn.dismiss { background: rgba(255,255,255,.2); color: #fff;
+      border: 1px solid rgba(255,255,255,.4); }
+
+    /* ─── NAV BANNER ─── */
+    .nav-banner {
+      display: none; position: absolute; top: 30px; left: 3px; right: 3px;
+      z-index: 25; background: rgba(183,28,28,.92); border-radius: 7px;
+      padding: 5px 10px; box-shadow: 0 2px 8px rgba(0,0,0,.35);
+      align-items: center; justify-content: space-between;
+    }
+    .nav-banner.active { display: flex; }
+    .nav-banner-text { display: flex; flex-direction: column; }
+    .nav-banner-title { font-size: 7.5px; font-weight: 700; color: #ffcdd2; }
+    .nav-banner-info { font-size: 12px; font-weight: 800; color: #fff; }
+    .nav-banner-close {
+      background: none; border: none; color: rgba(255,255,255,.6);
+      font-size: 13px; cursor: pointer; padding: 0 2px;
+    }
+
+    /* ─── PRIVATE BANNER ─── */
+    .private-banner {
+      display: none; align-items: center; justify-content: space-between;
+      background: var(--blue-light); border: 1.5px solid var(--blue-border);
+      border-radius: 6px; padding: 3px 8px;
+      margin-bottom: 5px; flex-shrink: 0;
+      font-size: 9px; font-weight: 700; color: var(--blue);
+    }
+    .private-banner.active { display: flex; }
+    .private-close {
+      background: none; border: none; color: var(--blue);
+      cursor: pointer; font-size: 12px; padding: 0;
+    }
+
+    /* Clickable online chip */
+    .online-chip.clickable { cursor: pointer; }
+    .online-chip.clickable:hover { background: #c8e6c9; border-color: var(--green); }
+    .online-chip.priv-active {
+      background: var(--blue-light); border-color: var(--blue-border); color: var(--blue);
+    }
+
+    /* ─── SIDE PANEL DEVICE COMPARISON ─── */
+    .dev-cmp {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 4px;
+    }
+    .dev-col {
+      background: #f9fbe7; border: 1px solid var(--green-light);
+      border-radius: 7px; padding: 6px 7px;
+    }
+    .dev-col.blue { background: #e3f2fd; border-color: var(--blue-border); }
+    .dev-col-head {
+      font-size: 9px; font-weight: 800; letter-spacing: .5px;
+      color: var(--green); margin-bottom: 5px; padding-bottom: 4px;
+      border-bottom: 1.5px solid var(--green-light);
+    }
+    .dev-col.blue .dev-col-head { color: var(--blue); border-color: var(--blue-border); }
+    .dc-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .dc-k { font-size: 7.5px; color: var(--text-soft); font-weight: 600; }
+    .dc-v { font-size: 7.5px; font-weight: 800; color: var(--text); }
+    .dc-v.g { color: var(--green); }
+    .dc-v.o { color: var(--orange-mid); }
+    .dc-v.r { color: var(--red-mid); }
+    .dc-v.b { color: var(--blue); }
+    .dc-mini-bar { height: 3px; background: #e0e0e0; border-radius: 2px; margin: 2px 0 4px; }
+    .dc-mini-fill { height: 100%; border-radius: 2px; background: var(--green); transition: width .8s ease; }
+    .dev-col.blue .dc-mini-fill { background: var(--blue); }
+
+    /* ─── NAV BADGE (unread messages) ─── */
+    .nav-icon { position: relative; display: inline-block; }
+    .nav-badge {
+      position: absolute; top: -3px; right: -6px;
+      background: #c62828; color: #fff;
+      font-size: 6.5px; font-weight: 800;
+      min-width: 12px; height: 12px; border-radius: 6px; padding: 0 3px;
+      display: none; align-items: center; justify-content: center;
+      line-height: 12px; letter-spacing: 0; pointer-events: none;
+    }
+    .nav-badge.show { display: flex; }
+
+    /* ─── NODE LIST (farm page detail) ─── */
+    .node-item {
+      border: 1px solid var(--green-light); border-radius: 7px;
+      padding: 6px 8px; margin-bottom: 5px; background: var(--green-bg);
+    }
+    .node-item:last-child { margin-bottom: 0; }
+    .node-item-head { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+    .node-item-id { font-size: 11px; font-weight: 800; color: var(--green); min-width: 22px; }
+    .node-item-soil { font-size: 8.5px; font-weight: 800; flex: 1; }
+    .node-item-rssi { font-size: 7.5px; color: var(--text-soft); }
+    .node-nav-btn {
+      font-size: 7.5px; padding: 2px 7px; background: var(--green); color: #fff;
+      border: none; border-radius: 5px; cursor: pointer;
+      font-family: 'Sarabun', sans-serif; font-weight: 700; flex-shrink: 0;
+    }
+    .node-nav-btn:active { opacity: .8; transform: scale(.96); }
+    .node-mini-row { display: none; grid-template-columns: 1fr 1fr; gap: 3px 6px; margin-top: 4px; }
+    .node-mini-row.show { display: grid; }
+    .node-mini-item { display: flex; align-items: center; gap: 3px; font-size: 8px; color: var(--text-mid); }
+    /* ─── Detail expand/collapse ─── */
+    .detail-section { display: none; }
+    .detail-section.show { display: block; }
+    .detail-toggle-btn {
+      width: 100%; font-size: 7.5px; font-weight: 700;
+      color: var(--green); border: 1px solid var(--green-light);
+      background: var(--green-bg); border-radius: 5px;
+      padding: 3px 8px; cursor: pointer; font-family: 'Sarabun',sans-serif;
+      margin-top: 5px; display: flex; align-items: center; justify-content: center; gap: 3px;
+    }
+    .node-detail-btn {
+      font-size: 7px; padding: 1px 5px; background: transparent;
+      border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
+      font-family: 'Sarabun',sans-serif; color: var(--text-soft); flex-shrink: 0;
+    }
+    .node-mini-bw { flex: 1; height: 4px; background: #e0e0e0; border-radius: 2px; min-width: 18px; }
+    .node-mini-bf { height: 100%; border-radius: 2px; transition: width .5s ease; }
+
+    /* ─── DEVICE COLUMN (device + status box below) ─── */
+    .device-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .dev-status-box {
+      width: 268px;
+      background: #ffffff; border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 10px 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+    .dsb-title {
+      font-size: 9px; font-weight: 800; color: var(--green);
+      letter-spacing: .5px; margin-bottom: 8px; padding-bottom: 5px;
+      border-bottom: 2px solid var(--green-light);
+    }
+    .dev-status-box.blue .dsb-title { color: var(--blue); border-bottom-color: var(--blue-border); }
+    .dev-status-box.blue .dc-mini-fill { background: var(--blue); }
+    .dsb-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px;
+    }
+    .dsb-item { display: flex; flex-direction: column; gap: 2px; }
+    .dsb-k { font-size: 7px; font-weight: 600; color: var(--text-soft); }
+    .dsb-v { font-size: 10px; font-weight: 800; color: var(--text); }
+    .dsb-v.g { color: var(--green); }
+    .dsb-v.o { color: var(--orange-mid); }
+    .dsb-v.r { color: var(--red-mid); }
+    .dsb-v.b { color: var(--blue); }
+
+    /* ─── SIDE PANEL ─── */
+    .side-panel { display: flex; flex-direction: column; gap: 12px; }
+
+    .info-box {
+      width: 164px;
+      background: #ffffff; border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 11px 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+    .ib-title {
+      font-size: 9px; font-weight: 800; color: var(--green);
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 9px; padding-bottom: 6px;
+      border-bottom: 2px solid var(--green-light);
+    }
+    .sp-row {
+      display: flex; justify-content: space-between; margin-bottom: 5px;
+    }
+    .sp-key { font-size: 8px; font-weight: 600; color: var(--text-soft); }
+    .sp-val { font-size: 8px; font-weight: 800; color: var(--text); }
+    .sp-val.g { color: var(--green); }
+    .sp-val.o { color: var(--orange-mid); }
+    .sp-val.r { color: var(--red-mid); }
+
+    .gw-list { display: flex; flex-direction: column; gap: 5px; }
+    .gw-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 5px 8px;
+      background: var(--green-bg); border: 1px solid var(--green-light);
+      border-radius: 6px;
+    }
+    .gw-name { font-size: 9px; font-weight: 700; color: var(--text-mid); }
+    .gw-right { display: flex; align-items: center; gap: 5px; }
+    .gw-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #4caf50;
+      animation: blink 3s ease-in-out infinite;
+    }
+    .gw-dbm { font-size: 8px; font-weight: 600; color: var(--text-soft); }
+
+    .energy-big {
+      display: flex; gap: 6px; margin-bottom: 8px;
+    }
+    .e-chip {
+      flex: 1; text-align: center;
+      background: var(--green-bg); border: 1px solid var(--green-light);
+      border-radius: 7px; padding: 7px 4px;
+    }
+    .e-num {
+      font-size: 16px; font-weight: 800; color: var(--green); display: block;
+    }
+    .e-lbl { font-size: 7px; font-weight: 600; color: var(--text-soft); }
+
+    /* ─── DEVICE LINK ─── */
+    .device-link {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 7px; width: 46px;
+      align-self: flex-start; height: 419px;
+    }
+    .link-badge {
+      font-size: 6px; font-weight: 800; color: var(--green); text-align: center;
+      background: var(--green-bg); border: 1.5px solid var(--green-light);
+      border-radius: 10px; padding: 4px 5px; line-height: 1.6;
+    }
+    .link-stat { font-size: 6px; color: var(--text-soft); text-align: center; font-weight: 700; line-height: 1.6; }
+    .link-waves { display: flex; flex-direction: column; gap: 3px; }
+    .lw {
+      height: 2px; border-radius: 1px;
+      background: linear-gradient(90deg,var(--green),rgba(46,125,50,.05));
+      opacity: 0; animation: waveFlow 2.2s ease-in-out infinite;
+    }
+    .lw:nth-child(1){width:38px;animation-delay:0s;}
+    .lw:nth-child(2){width:30px;animation-delay:.55s;}
+    .lw:nth-child(3){width:22px;animation-delay:1.1s;}
+    @keyframes waveFlow{0%{opacity:0;transform:translateX(-6px)}45%{opacity:.75}100%{opacity:0;transform:translateX(6px)}}
+  </style>
+</head>
+<body>
+
+<div class="device-wrap">
+
+  <!-- ═══════════ SIDE PANEL LEFT ═══════════ -->
+  <div class="side-panel">
+    <div class="info-box">
+      <div class="ib-title">🔩 สเปคฮาร์ดแวร์</div>
+      <div class="sp-row"><span class="sp-key">ชิป</span><span class="sp-val">ESP32-S3</span></div>
+      <div class="sp-row"><span class="sp-key">วิทยุ</span><span class="sp-val">SX1262 LoRa</span></div>
+      <div class="sp-row"><span class="sp-key">ระยะส่ง</span><span class="sp-val g">5–20 กม.</span></div>
+      <div class="sp-row"><span class="sp-key">แบตเตอรี่</span><span class="sp-val">3.7V 4000mAh</span></div>
+      <div class="sp-row"><span class="sp-key">อายุใช้งาน</span><span class="sp-val g">3–5 วัน/ชาร์จ</span></div>
+      <div class="sp-row"><span class="sp-key">โซลาร์</span><span class="sp-val o">ชาร์จอยู่ ✓</span></div>
+      <div class="sp-row"><span class="sp-key">กันน้ำ</span><span class="sp-val">IP65</span></div>
+      <div class="sp-row"><span class="sp-key">น้ำหนัก</span><span class="sp-val">240 กรัม</span></div>
+      <div class="sp-row"><span class="sp-key">ราคา</span><span class="sp-val g">6,990 บาท</span></div>
+    </div>
+    <div class="info-box">
+      <div class="ib-title">💡 ประหยัดพลังงาน</div>
+      <div class="energy-big">
+        <div class="e-chip"><span class="e-num">5×</span><div class="e-lbl">กว่า Wi-Fi</div></div>
+        <div class="e-chip"><span class="e-num">18×</span><div class="e-lbl">กว่า NB-IoT</div></div>
+      </div>
+      <div class="sp-row"><span class="sp-key">ค่าอินเทอร์เน็ต</span><span class="sp-val g">฿0 / เดือน</span></div>
+      <div class="sp-row"><span class="sp-key">ไม่ต้องใช้เน็ต</span><span class="sp-val g">✓</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ DEVICE 1 COLUMN ═══════════ -->
+  <div class="device-col">
+
+  <!-- ═══════════ DEVICE 1 ═══════════ -->
+  <div class="device" id="device1">
+
+    <div class="device-header">
+      <span class="device-logo">LoRaFarm</span>
+      <div class="hw-led" id="mainLed"></div>
+      <span class="device-logo">v2.1</span>
+    </div>
+
+    <div class="screen">
+      <div class="screen-off" id="d1-overlay" onclick="screenToggle('d1')"></div>
+
+      <!-- ═══ PAGE 1 : สถานะ ═══ -->
+      <div class="page active" id="page-0">
+        <div class="screen-header">
+          <span class="screen-title">📊 สถานะ</span>
+          <span class="screen-time" id="clock">10:45</span>
+        </div>
+        <div class="screen-body">
+
+          <div class="card">
+            <div class="card-title">⚡ พลังงาน</div>
+            <div class="row">
+              <span class="lbl">🔋 แบตเตอรี่</span>
+              <span class="val g" id="batPct">90%</span>
+            </div>
+            <div class="bat-wrap">
+              <div class="bat-fill" id="batFill" style="width:90%"></div>
+            </div>
+            <button class="detail-toggle-btn" onclick="toggleDetail('d1-pwr-detail',this)">▾ ดูรายละเอียด</button>
+            <div id="d1-pwr-detail" class="detail-section">
+              <div class="row"><span class="lbl">กระแสไฟ</span><span class="val" id="current">67.5 mA</span></div>
+              <div class="row"><span class="lbl">☀️ โซลาร์</span><span class="val o" id="solarIn">+18.2 mA</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📡 สัญญาณ</div>
+            <div class="row">
+              <span class="lbl">ความแรงสัญญาณ</span>
+              <div class="sig-bars" id="sigBars">
+                <div class="sig-bar on" style="height:5px"></div>
+                <div class="sig-bar on" style="height:8px"></div>
+                <div class="sig-bar on" style="height:11px"></div>
+                <div class="sig-bar on" style="height:14px"></div>
+                <div class="sig-bar"   style="height:17px"></div>
+              </div>
+              <span class="val g" id="sigLabel">สัญญาณดี</span>
+            </div>
+            <button class="detail-toggle-btn" onclick="toggleDetail('d1-sig-detail',this)">▾ ดูรายละเอียด</button>
+            <div id="d1-sig-detail" class="detail-section">
+              <div class="row"><span class="lbl">ค่า RSSI</span><span class="val g" id="rssi">-72 dBm</span></div>
+              <div class="row"><span class="lbl">โหนด</span><span class="val">18 / 18</span></div>
+              <div class="row"><span class="lbl">ฐานรับส่ง</span><span class="val g">4 จุด ✓</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🌿 ภาพรวมฟาร์ม</div>
+            <div class="qs-row">
+              <div class="qs-card">
+                <div class="qs-icon">🌱</div>
+                <span class="qs-num" id="qs-soil">65%</span>
+                <div class="qs-lbl">ดินชุ่ม</div>
+              </div>
+              <div class="qs-card">
+                <div class="qs-icon">🌡️</div>
+                <span class="qs-num" id="qs-temp">28.5°</span>
+                <div class="qs-lbl">อุณหภูมิ</div>
+              </div>
+              <div class="qs-card">
+                <div class="qs-icon">💧</div>
+                <span class="qs-num" id="qs-hum">72%</span>
+                <div class="qs-lbl">ความชื้น</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="screen-nav">
+          <button class="nav-btn active" onclick="goPage(0)">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">สถานะ</span>
+          </button>
+          <button class="nav-btn" onclick="goPage(1)">
+            <span class="nav-icon">🌿</span>
+            <span class="nav-label">ฟาร์ม</span>
+          </button>
+          <button class="nav-btn" onclick="goPage(2)">
+            <span class="nav-icon">🗺️</span>
+            <span class="nav-label">แผนที่</span>
+          </button>
+          <button class="nav-btn" onclick="goPage(3)">
+            <span class="nav-icon">💬<span class="nav-badge d1-badge"></span></span>
+            <span class="nav-label">สื่อสาร</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ═══ PAGE 2 : ฟาร์ม ═══ -->
+      <div class="page" id="page-1">
+        <div class="screen-header">
+          <span class="screen-title">🌿 ควบคุมฟาร์ม</span>
+          <span class="screen-time" id="clock1">10:45</span>
+        </div>
+        <div class="screen-body">
+
+          <div class="zone-tabs">
+            <div class="zone-tab active" onclick="switchZone(this,'A')">โซน A</div>
+            <div class="zone-tab" onclick="switchZone(this,'B')">โซน B</div>
+            <div class="zone-tab" onclick="switchZone(this,'C')">โซน C</div>
+            <div class="zone-tab" onclick="switchZone(this,'D')">โซน D</div>
+            <div class="zone-tab" onclick="switchZone(this,'E')">โซน E</div>
+            <div class="zone-tab" onclick="switchZone(this,'F')">โซน F</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📟 เซนเซอร์ — <span id="zoneLabel">โซน A</span></div>
+            <div class="sensor-row">
+              <span class="s-icon">🌱</span>
+              <div class="s-info">
+                <div class="s-name">ความชื้นดิน</div>
+                <div class="s-bar-wrap"><div class="s-bar" id="bar-soil" style="width:65%"></div></div>
+              </div>
+              <span class="s-val" id="val-soil">65%</span>
+              <span class="s-status g" id="stat-soil">ดีมาก</span>
+            </div>
+            <button class="detail-toggle-btn" onclick="toggleDetail('d1-sensor-detail',this)">▾ ดูรายละเอียด</button>
+            <div id="d1-sensor-detail" class="detail-section">
+              <div class="sensor-row">
+                <span class="s-icon">🌡️</span>
+                <div class="s-info"><div class="s-name">อุณหภูมิ</div><div class="s-bar-wrap"><div class="s-bar" id="bar-temp" style="width:57%"></div></div></div>
+                <span class="s-val" id="val-temp">28.5°C</span>
+                <span class="s-status g" id="stat-temp">ดีมาก</span>
+              </div>
+              <div class="sensor-row">
+                <span class="s-icon">💧</span>
+                <div class="s-info"><div class="s-name">ความชื้นอากาศ</div><div class="s-bar-wrap"><div class="s-bar warn" id="bar-hum" style="width:72%"></div></div></div>
+                <span class="s-val" id="val-hum">72%</span>
+                <span class="s-status g" id="stat-hum">ดี</span>
+              </div>
+              <div class="sensor-row">
+                <span class="s-icon">☀️</span>
+                <div class="s-info"><div class="s-name">ความเข้มแสง</div><div class="s-bar-wrap"><div class="s-bar" id="bar-light" style="width:82%"></div></div></div>
+                <span class="s-val" id="val-light">82%</span>
+                <span class="s-status g" id="stat-light">ดีมาก</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🔧 สั่งงาน — <span id="actZone">โซน A · ข้าวโพด</span></div>
+            <div id="act-list"><!-- ถูกสร้างโดย switchZone() --></div>
+          </div>
+          <div class="card">
+            <div class="card-title">📍 โหนดในโซน — <span id="node-count">0 จุด</span></div>
+            <div id="node-list"></div>
+          </div>
+
+        </div>
+        <div class="screen-nav">
+          <button class="nav-btn" onclick="goPage(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
+          <button class="nav-btn active" onclick="goPage(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn" onclick="goPage(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
+          <button class="nav-btn" onclick="goPage(3)"><span class="nav-icon">💬<span class="nav-badge d1-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
+        </div>
+      </div>
+
+      <!-- ═══ PAGE 3 : แผนที่ฟาร์ม ═══ -->
+      <div class="page" id="page-2">
+        <div class="nav-banner" id="d1-nav-banner">
+          <div class="nav-banner-text">
+            <span class="nav-banner-title">🧭 นำทางไปยัง SOS</span>
+            <span class="nav-banner-info" id="d1-nav-info">↗ LFC-02</span>
+          </div>
+          <button class="nav-banner-close" onclick="closeNavBanner(1)">✕</button>
+        </div>
+        <div class="screen-header">
+          <span class="screen-title">🗺️ แผนที่ฟาร์ม</span>
+          <span class="screen-time" id="clock2">10:45</span>
+        </div>
+        <div class="screen-body" style="padding:0; overflow:hidden; background:#a1887f;">
+          <canvas id="mapCanvas" width="468" height="556"></canvas>
+        </div>
+        <!-- Node info popup (overlays canvas) -->
+        <div id="nodePopup" class="node-popup">
+          <div class="popup-head">
+            <div>
+              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                <span class="popup-node-id" id="pp-id">A1</span>
+                <span class="popup-rssi" id="pp-rssi">-68 dBm</span>
+                <span class="s-status g" id="pp-sigzone" style="font-size:7px;padding:2px 5px;">🟢 สัญญาณดี</span>
+              </div>
+              <span class="popup-zone" id="pp-zone">โซน A · ข้าวโพด</span>
+            </div>
+            <button class="popup-close" onclick="closeNodePopup()">✕</button>
+          </div>
+          <div class="popup-body" id="pp-sensors"></div>
+          <div class="popup-acts" id="pp-acts"></div>
+        </div>
+        <div class="screen-nav">
+          <button class="nav-btn" onclick="goPage(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
+          <button class="nav-btn" onclick="goPage(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn active" onclick="goPage(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
+          <button class="nav-btn" onclick="goPage(3)"><span class="nav-icon">💬<span class="nav-badge d1-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
+        </div>
+      </div>
+
+      <!-- ═══ PAGE 4 : สื่อสาร ═══ -->
+      <div class="page" id="page-3">
+        <div class="screen-header">
+          <span class="screen-title">💬 สื่อสาร</span>
+          <span class="screen-time" id="clock3">10:45</span>
+        </div>
+        <div class="comm-body">
+          <div class="online-bar">
+            <div class="online-chip"><div class="o-dot"></div>ฉัน</div>
+            <div class="online-chip clickable" id="d1-chip-lfc02" onclick="togglePrivateChat(1,'LFC-02')"><div class="o-dot"></div>LFC-02</div>
+            <div class="online-chip"><div class="o-dot"></div>A1</div>
+            <div class="online-chip offline">C3</div>
+          </div>
+          <div class="private-banner" id="d1-private-banner">
+            <span class="pb-text">📨 แชทส่วนตัวกับ LFC-02</span>
+            <button class="private-close" onclick="closePrivateChat(1)">✕</button>
+          </div>
+          <div class="chat-area" id="chatArea">
+            <div class="msg">
+              <div class="msg-av">A1</div>
+              <div class="msg-bubble">
+                <div class="msg-who">โหนด A1</div>
+                <div class="msg-text">วาล์ว 2 เปิดแล้ว กำลังให้น้ำ โซน A</div>
+                <div class="msg-ts">10:30</div>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="msg-av">B2</div>
+              <div class="msg-bubble">
+                <div class="msg-who">โหนด B2</div>
+                <div class="msg-text">ดินชื้นน้อย โซน B ต้องการน้ำ</div>
+                <div class="msg-ts">10:38</div>
+              </div>
+            </div>
+            <div class="msg me">
+              <div class="msg-av">ฉัน</div>
+              <div class="msg-bubble">
+                <div class="msg-who" style="text-align:right">ฉัน</div>
+                <div class="msg-text">กำลังตรวจสอบ โซน B</div>
+                <div class="msg-ts">10:40</div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input class="chat-input" type="text" id="msgInput" placeholder="พิมพ์ข้อความ...">
+            <button class="vkb-toggle" id="d1-vkb-btn" onclick="toggleVKB(1)" title="แป้นพิมพ์">⌨️</button>
+            <button class="btn-send" onclick="sendMsg()">ส่ง</button>
+          </div>
+          <div class="emergency-row">
+            <button class="btn-loc" onclick="shareLocation()">📍 แชร์ตำแหน่ง</button>
+            <div class="sos-hold-wrap" id="d1-sos-wrap">
+              <button class="btn-sos" id="sosBtn"
+                onmousedown="startSOSHold(1)" onmouseup="cancelSOSHold(1)" onmouseleave="cancelSOSHold(1)"
+                ontouchstart="e=>{e.preventDefault();startSOSHold(1)}" ontouchend="cancelSOSHold(1)">🆘 SOS</button>
+              <div class="sos-prog-bar" id="d1-sos-prog"></div>
+            </div>
+          </div>
+          <div class="vkb" id="d1-vkb"></div>
+        </div>
+        <div class="screen-nav">
+          <button class="nav-btn" onclick="goPage(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
+          <button class="nav-btn" onclick="goPage(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn" onclick="goPage(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
+          <button class="nav-btn active" onclick="goPage(3)"><span class="nav-icon">💬<span class="nav-badge d1-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
+        </div>
+      </div>
+
+
+    <!-- SOS Full Alert inside screen (receives from device2) -->
+    <div class="sos-alert-full" id="d1-sos-alert">
+      <div class="sos-alert-icon">🆘</div>
+      <div class="sos-alert-title">SOS แจ้งเตือน!</div>
+      <div class="sos-alert-from" id="d1-alert-from">จาก: LFC-02</div>
+      <div class="sos-alert-reason-text" id="d1-alert-reason">บาดเจ็บ</div>
+      <div class="sos-alert-btns">
+        <button class="sos-alert-btn nav-btn-sos" onclick="navToSOS(1)">🗺️ นำทาง</button>
+        <button class="sos-alert-btn dismiss" onclick="dismissSOSAlert(1)">รับทราบ ✓</button>
+      </div>
+    </div>
+    <!-- SOS Reason Picker inside screen -->
+    <div class="sos-reason-modal" id="d1-sos-reason">
+      <div class="srm-box">
+        <div class="srm-title">🆘 เลือกสาเหตุ SOS</div>
+        <div class="srm-opts">
+          <button class="srm-opt" onclick="confirmSOS(1,'🤕 บาดเจ็บ')">🤕<br>บาดเจ็บ</button>
+          <button class="srm-opt" onclick="confirmSOS(1,'🗺️ หลงทาง')">🗺️<br>หลงทาง</button>
+          <button class="srm-opt" onclick="confirmSOS(1,'🔧 อุปกรณ์เสีย')">🔧<br>อุปกรณ์เสีย</button>
+          <button class="srm-opt" onclick="confirmSOS(1,'🐍 สัตว์มีพิษ')">🐍<br>สัตว์มีพิษ</button>
+          <button class="srm-opt" onclick="confirmSOS(1,'🔥 ไฟไหม้')">🔥<br>ไฟไหม้</button>
+          <button class="srm-opt" onclick="confirmSOS(1,'🙏 ขอความช่วยเหลือ')">🙏<br>อื่นๆ</button>
+        </div>
+        <button class="srm-cancel" onclick="cancelSOSReason(1)">ยกเลิก</button>
+      </div>
+    </div>
+
+    </div><!-- /screen -->
+
+    <!-- Side buttons device1 (right side) -->
+    <div class="dev-side-btns">
+      <button class="dsb dsb-pwr" onclick="screenToggle('d1')" title="เปิด/ปิดหน้าจอ">⏻<br>PWR</button>
+      <button class="dsb dsb-sos" id="side-sos-1"
+        onmousedown="startSOSHold(1)" onmouseup="cancelSOSHold(1)" onmouseleave="cancelSOSHold(1)"
+        ontouchstart="event.preventDefault();startSOSHold(1)" ontouchend="cancelSOSHold(1)"
+        title="กดค้าง 5 วิ เพื่อส่ง SOS">🆘<br>SOS
+        <div class="dsb-sos-fill" id="d1-side-fill"></div>
+      </button>
+    </div>
+
+  </div><!-- /device1 -->
+
+    <!-- LFC-01 Realtime Status -->
+    <div class="dev-status-box">
+      <div class="dsb-title">🟢 LFC-01 — สถานะ Realtime</div>
+      <div class="dsb-grid">
+        <div class="dsb-item">
+          <span class="dsb-k">🔋 แบตเตอรี่</span>
+          <span class="dsb-v g" id="sp-bat1">90%</span>
+          <div class="dc-mini-bar"><div class="dc-mini-fill" id="sp-bat1-bar" style="width:90%"></div></div>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">📡 สัญญาณ</span>
+          <span class="dsb-v g" id="sp-rssi1">-72 dBm</span>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">⚡ กระแส</span>
+          <span class="dsb-v" id="sp-cur1">67.5 mA</span>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">☀️ โซลาร์</span>
+          <span class="dsb-v o" id="sp-sol1">+18 mA</span>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">🌱 ดินเฉลี่ย</span>
+          <span class="dsb-v g" id="sp-soil1">65%</span>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">🌡️ อุณหภูมิ</span>
+          <span class="dsb-v" id="sp-temp1">28.50°C</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /device-col-1 -->
+
+  <!-- ─── LoRa Link ─── -->
+  <div class="device-link">
+    <div class="link-waves">
+      <span class="lw"></span><span class="lw"></span><span class="lw"></span>
+    </div>
+    <div class="link-badge">📡<br>LoRa<br>Link</div>
+    <div class="link-stat">-68 dBm<br>3.2 กม.</div>
+    <div class="link-waves" style="transform:scaleX(-1)">
+      <span class="lw"></span><span class="lw"></span><span class="lw"></span>
+    </div>
+  </div>
+
+  <!-- ═══════════ DEVICE 2 COLUMN ═══════════ -->
+  <div class="device-col">
+
+  <!-- ═══════════ DEVICE 2 ═══════════ -->
+  <div class="device" id="device2">
+    <div class="device-header">
+      <span class="device-logo">LoRaFarm</span>
+      <div class="hw-led" id="b-mainLed"></div>
+      <span class="device-logo">v2.1</span>
+    </div>
+    <div class="screen">
+      <div class="screen-off" id="d2-overlay" onclick="screenToggle('d2')"></div>
+
+      <!-- PAGE 1: สถานะ -->
+      <div class="page active" id="b-page-0">
+        <div class="screen-header">
+          <span class="screen-title">📊 สถานะ</span>
+          <span class="screen-time" id="b-clock">10:45</span>
+        </div>
+        <div class="screen-body">
+          <div class="card">
+            <div class="card-title">⚡ พลังงาน</div>
+            <div class="row"><span class="lbl">🔋 แบตเตอรี่</span><span class="val o" id="b-batPct">82%</span></div>
+            <div class="bat-wrap"><div class="bat-fill" id="b-batFill" style="width:82%;background:linear-gradient(90deg,#f57c00,#ffb74d)"></div></div>
+            <button class="detail-toggle-btn" onclick="toggleDetail('d2-pwr-detail',this)">▾ ดูรายละเอียด</button>
+            <div id="d2-pwr-detail" class="detail-section">
+              <div class="row"><span class="lbl">กระแสไฟ</span><span class="val" id="b-current">54.2 mA</span></div>
+              <div class="row"><span class="lbl">☀️ โซลาร์</span><span class="val o" id="b-solarIn">+15.6 mA</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">📡 สัญญาณ</div>
+            <div class="row">
+              <span class="lbl">ความแรงสัญญาณ</span>
+              <div class="sig-bars" id="b-sigBars">
+                <div class="sig-bar on" style="height:5px"></div>
+                <div class="sig-bar on" style="height:8px"></div>
+                <div class="sig-bar on" style="height:11px"></div>
+                <div class="sig-bar"    style="height:14px"></div>
+                <div class="sig-bar"    style="height:17px"></div>
+              </div>
+              <span class="val o" id="b-sigLabel">ปานกลาง</span>
+            </div>
+            <button class="detail-toggle-btn" onclick="toggleDetail('d2-sig-detail',this)">▾ ดูรายละเอียด</button>
+            <div id="d2-sig-detail" class="detail-section">
+              <div class="row"><span class="lbl">ค่า RSSI</span><span class="val o" id="b-rssi">-74 dBm</span></div>
+              <div class="row"><span class="lbl">โหนด</span><span class="val">18 / 18</span></div>
+              <div class="row"><span class="lbl">🔗 เชื่อม LFC-01</span><span class="val g">✓ ออนไลน์</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🌿 ภาพรวมฟาร์ม</div>
+            <div class="qs-row">
+              <div class="qs-card"><div class="qs-icon">🌱</div><span class="qs-num" id="b-qs-soil">62%</span><div class="qs-lbl">ดินชุ่ม</div></div>
+              <div class="qs-card"><div class="qs-icon">🌡️</div><span class="qs-num" id="b-qs-temp">29.2°</span><div class="qs-lbl">อุณหภูมิ</div></div>
+              <div class="qs-card"><div class="qs-icon">💧</div><span class="qs-num" id="b-qs-hum">68%</span><div class="qs-lbl">ความชื้น</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="screen-nav">
+          <button class="nav-btn active" onclick="goPage2(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
+          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn" onclick="goPage2(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
+          <button class="nav-btn" onclick="goPage2(3)"><span class="nav-icon">💬<span class="nav-badge d2-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
+        </div>
+      </div>
+
+      <!-- PAGE 2: ฟาร์ม -->
+      <div class="page" id="b-page-1">
+        <div class="screen-header">
+          <span class="screen-title">🌿 ควบคุมฟาร์ม</span>
+          <span class="screen-time" id="b-clock1">10:45</span>
+        </div>
+        <div class="screen-body">
+          <div class="zone-tabs">
+            <div class="zone-tab" onclick="switchZone2(this,'A')">โซน A</div>
+            <div class="zone-tab" onclick="switchZone2(this,'B')">โซน B</div>
+            <div class="zone-tab" onclick="switchZone2(this,'C')">โซน C</div>
+            <div class="zone-tab active" onclick="switchZone2(this,'D')">โซน D</div>
+            <div class="zone-tab" onclick="switchZone2(this,'E')">โซน E</div>
+            <div class="zone-tab" onclick="switchZone2(this,'F')">โซน F</div>
+          </div>
+          <div class="card">
+            <div class="card-title">📟 เซนเซอร์ — <span id="b-zoneLabel">โซน D</span></div>
+            <div class="sensor-row"><span class="s-icon">🌱</span><div class="s-info"><div class="s-name">ความชื้นดิน</div><div class="s-bar-wrap"><div class="s-bar" id="b-bar-soil" style="width:80%"></div></div></div><span class="s-val" id="b-val-soil">80%</span><span class="s-status g" id="b-stat-soil">ดีมาก</span></div>
+            <button class="detail-toggle-btn" onclick="toggleDetail('d2-sensor-detail',this)">▾ ดูรายละเอียด</button>
+            <div id="d2-sensor-detail" class="detail-section">
+              <div class="sensor-row"><span class="s-icon">🌡️</span><div class="s-info"><div class="s-name">อุณหภูมิ</div><div class="s-bar-wrap"><div class="s-bar" id="b-bar-temp" style="width:54%"></div></div></div><span class="s-val" id="b-val-temp">27.2°C</span><span class="s-status g" id="b-stat-temp">ดีมาก</span></div>
+              <div class="sensor-row"><span class="s-icon">💧</span><div class="s-info"><div class="s-name">ความชื้นอากาศ</div><div class="s-bar-wrap"><div class="s-bar warn" id="b-bar-hum" style="width:85%"></div></div></div><span class="s-val" id="b-val-hum">85%</span><span class="s-status o" id="b-stat-hum">ควรเช็ค</span></div>
+              <div class="sensor-row"><span class="s-icon">☀️</span><div class="s-info"><div class="s-name">ความเข้มแสง</div><div class="s-bar-wrap"><div class="s-bar" id="b-bar-light" style="width:60%"></div></div></div><span class="s-val" id="b-val-light">60%</span><span class="s-status g" id="b-stat-light">ดี</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🔧 สั่งงาน — <span id="b-actZone">โซน D · มันสำปะหลัง</span></div>
+            <div id="b-act-list"><!-- ถูกสร้างโดย switchZone2() --></div>
+          </div>
+          <div class="card">
+            <div class="card-title">📍 โหนดในโซน — <span id="b-node-count">0 จุด</span></div>
+            <div id="b-node-list"></div>
+          </div>
+        </div>
+        <div class="screen-nav">
+          <button class="nav-btn" onclick="goPage2(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
+          <button class="nav-btn active" onclick="goPage2(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn" onclick="goPage2(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
+          <button class="nav-btn" onclick="goPage2(3)"><span class="nav-icon">💬<span class="nav-badge d2-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
+        </div>
+      </div>
+
+      <!-- PAGE 3: แผนที่ -->
+      <div class="page" id="b-page-2">
+        <div class="nav-banner" id="d2-nav-banner">
+          <div class="nav-banner-text">
+            <span class="nav-banner-title">🧭 นำทางไปยัง SOS</span>
+            <span class="nav-banner-info" id="d2-nav-info">↖ LFC-01</span>
+          </div>
+          <button class="nav-banner-close" onclick="closeNavBanner(2)">✕</button>
+        </div>
+        <div class="screen-header">
+          <span class="screen-title">🗺️ แผนที่ฟาร์ม</span>
+          <span class="screen-time" id="b-clock2">10:45</span>
+        </div>
+        <div class="screen-body" style="padding:0;overflow:hidden;background:#a1887f;">
+          <canvas id="b-mapCanvas" width="468" height="556"></canvas>
+        </div>
+        <div id="b-nodePopup" class="node-popup">
+          <div class="popup-head">
+            <div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;"><span class="popup-node-id" id="b-pp-id">A1</span><span class="popup-rssi" id="b-pp-rssi">-68 dBm</span><span class="s-status g" id="b-pp-sigzone" style="font-size:7px;padding:2px 5px;">🟢 สัญญาณดี</span></div><span class="popup-zone" id="b-pp-zone">โซน A</span></div>
+            <button class="popup-close" onclick="closeNodePopup2()">✕</button>
+          </div>
+          <div class="popup-body" id="b-pp-sensors"></div>
+          <div class="popup-acts" id="b-pp-acts"></div>
+        </div>
+        <div class="screen-nav">
+          <button class="nav-btn" onclick="goPage2(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
+          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn active" onclick="goPage2(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
+          <button class="nav-btn" onclick="goPage2(3)"><span class="nav-icon">💬<span class="nav-badge d2-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
+        </div>
+      </div>
+
+      <!-- PAGE 4: สื่อสาร -->
+      <div class="page" id="b-page-3">
+        <div class="screen-header">
+          <span class="screen-title">💬 สื่อสาร</span>
+          <span class="screen-time" id="b-clock3">10:45</span>
+        </div>
+        <div class="comm-body">
+          <div class="online-bar">
+            <div class="online-chip"><div class="o-dot"></div>ฉัน</div>
+            <div class="online-chip clickable" id="d2-chip-lfc01" onclick="togglePrivateChat(2,'LFC-01')"><div class="o-dot"></div>LFC-01</div>
+            <div class="online-chip"><div class="o-dot"></div>E2</div>
+            <div class="online-chip offline">F2</div>
+          </div>
+          <div class="private-banner" id="d2-private-banner">
+            <span class="pb-text">📨 แชทส่วนตัวกับ LFC-01</span>
+            <button class="private-close" onclick="closePrivateChat(2)">✕</button>
+          </div>
+          <div class="chat-area" id="b-chatArea">
+            <div class="msg">
+              <div class="msg-av">L1</div>
+              <div class="msg-bubble">
+                <div class="msg-who">LFC-01</div>
+                <div class="msg-text">โซน A วาล์ว 2 เปิดแล้ว กำลังให้น้ำ</div>
+                <div class="msg-ts">10:30</div>
+              </div>
+            </div>
+            <div class="msg me">
+              <div class="msg-av">ฉัน</div>
+              <div class="msg-bubble">
+                <div class="msg-who" style="text-align:right">ฉัน (LFC-02)</div>
+                <div class="msg-text">รับทราบ ฉันอยู่โซน D กำลังตรวจเช็ค</div>
+                <div class="msg-ts">10:32</div>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="msg-av">L1</div>
+              <div class="msg-bubble">
+                <div class="msg-who">LFC-01</div>
+                <div class="msg-text">โซน B ความชื้นดินต่ำ ช่วยเปิดปั๊มด้วย</div>
+                <div class="msg-ts">10:40</div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input class="chat-input" type="text" id="b-msgInput" placeholder="พิมพ์ข้อความ...">
+            <button class="vkb-toggle" id="d2-vkb-btn" onclick="toggleVKB(2)" title="แป้นพิมพ์">⌨️</button>
+            <button class="btn-send" onclick="sendMsg2()">ส่ง</button>
+          </div>
+          <div class="emergency-row">
+            <button class="btn-loc" onclick="shareLocation2()">📍 แชร์ตำแหน่ง</button>
+            <div class="sos-hold-wrap" id="d2-sos-wrap">
+              <button class="btn-sos" id="b-sosBtn"
+                onmousedown="startSOSHold(2)" onmouseup="cancelSOSHold(2)" onmouseleave="cancelSOSHold(2)"
+                ontouchstart="event.preventDefault();startSOSHold(2)" ontouchend="cancelSOSHold(2)">🆘 SOS</button>
+              <div class="sos-prog-bar" id="d2-sos-prog"></div>
+            </div>
+          </div>
+          <div class="vkb" id="d2-vkb"></div>
+        </div>
+        <div class="screen-nav">
+          <button class="nav-btn" onclick="goPage2(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
+          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn" onclick="goPage2(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
+          <button class="nav-btn active" onclick="goPage2(3)"><span class="nav-icon">💬<span class="nav-badge d2-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
+        </div>
+      </div>
+
+
+    <!-- SOS Full Alert inside screen (receives from device1) -->
+    <div class="sos-alert-full" id="d2-sos-alert">
+      <div class="sos-alert-icon">🆘</div>
+      <div class="sos-alert-title">SOS แจ้งเตือน!</div>
+      <div class="sos-alert-from" id="d2-alert-from">จาก: LFC-01</div>
+      <div class="sos-alert-reason-text" id="d2-alert-reason">บาดเจ็บ</div>
+      <div class="sos-alert-btns">
+        <button class="sos-alert-btn nav-btn-sos" onclick="navToSOS(2)">🗺️ นำทาง</button>
+        <button class="sos-alert-btn dismiss" onclick="dismissSOSAlert(2)">รับทราบ ✓</button>
+      </div>
+    </div>
+    <!-- SOS Reason Picker inside screen -->
+    <div class="sos-reason-modal" id="d2-sos-reason">
+      <div class="srm-box">
+        <div class="srm-title">🆘 เลือกสาเหตุ SOS</div>
+        <div class="srm-opts">
+          <button class="srm-opt" onclick="confirmSOS(2,'🤕 บาดเจ็บ')">🤕<br>บาดเจ็บ</button>
+          <button class="srm-opt" onclick="confirmSOS(2,'🗺️ หลงทาง')">🗺️<br>หลงทาง</button>
+          <button class="srm-opt" onclick="confirmSOS(2,'🔧 อุปกรณ์เสีย')">🔧<br>อุปกรณ์เสีย</button>
+          <button class="srm-opt" onclick="confirmSOS(2,'🐍 สัตว์มีพิษ')">🐍<br>สัตว์มีพิษ</button>
+          <button class="srm-opt" onclick="confirmSOS(2,'🔥 ไฟไหม้')">🔥<br>ไฟไหม้</button>
+          <button class="srm-opt" onclick="confirmSOS(2,'🙏 ขอความช่วยเหลือ')">🙏<br>อื่นๆ</button>
+        </div>
+        <button class="srm-cancel" onclick="cancelSOSReason(2)">ยกเลิก</button>
+      </div>
+    </div>
+
+    </div><!-- /screen -->
+
+    <!-- Side buttons device2 (left side) -->
+    <div class="dev-side-btns left-side">
+      <button class="dsb dsb-pwr" onclick="screenToggle('d2')" title="เปิด/ปิดหน้าจอ">⏻<br>PWR</button>
+      <button class="dsb dsb-sos" id="side-sos-2"
+        onmousedown="startSOSHold(2)" onmouseup="cancelSOSHold(2)" onmouseleave="cancelSOSHold(2)"
+        ontouchstart="event.preventDefault();startSOSHold(2)" ontouchend="cancelSOSHold(2)"
+        title="กดค้าง 5 วิ เพื่อส่ง SOS">🆘<br>SOS
+        <div class="dsb-sos-fill" id="d2-side-fill"></div>
+      </button>
+    </div>
+
+  </div><!-- /device2 -->
+
+    <!-- LFC-02 Realtime Status -->
+    <div class="dev-status-box blue">
+      <div class="dsb-title">🔵 LFC-02 — สถานะ Realtime</div>
+      <div class="dsb-grid">
+        <div class="dsb-item">
+          <span class="dsb-k">🔋 แบตเตอรี่</span>
+          <span class="dsb-v b" id="sp-bat2">82%</span>
+          <div class="dc-mini-bar"><div class="dc-mini-fill" id="sp-bat2-bar" style="width:82%"></div></div>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">📡 สัญญาณ</span>
+          <span class="dsb-v b" id="sp-rssi2">-78 dBm</span>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">⚡ กระแส</span>
+          <span class="dsb-v" id="sp-cur2">62.0 mA</span>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">☀️ โซลาร์</span>
+          <span class="dsb-v o" id="sp-sol2">+15 mA</span>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">🌱 ดินเฉลี่ย</span>
+          <span class="dsb-v g" id="sp-soil2">62%</span>
+        </div>
+        <div class="dsb-item">
+          <span class="dsb-k">🌡️ อุณหภูมิ</span>
+          <span class="dsb-v" id="sp-temp2">29.20°C</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /device-col-2 -->
+
+  <!-- ═══════════ SIDE PANEL RIGHT ═══════════ -->
+  <div class="side-panel">
+    <div class="info-box">
+      <div class="ib-title">📡 ฐานรับส่งสัญญาณ</div>
+      <div class="gw-list">
+        <div class="gw-item">
+          <span class="gw-name">HUB ALPHA</span>
+          <div class="gw-right"><div class="gw-dot"></div><span class="gw-dbm">-65 dBm</span></div>
+        </div>
+        <div class="gw-item">
+          <span class="gw-name">HUB BETA</span>
+          <div class="gw-right"><div class="gw-dot" style="animation-delay:.8s"></div><span class="gw-dbm">-71 dBm</span></div>
+        </div>
+        <div class="gw-item">
+          <span class="gw-name">HUB GAMMA</span>
+          <div class="gw-right"><div class="gw-dot" style="animation-delay:1.5s"></div><span class="gw-dbm">-79 dBm</span></div>
+        </div>
+        <div class="gw-item">
+          <span class="gw-name">HUB DELTA</span>
+          <div class="gw-right"><div class="gw-dot" style="animation-delay:2.2s"></div><span class="gw-dbm">-88 dBm</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ── State ── */
+  let currentPage = 0, currentPage2 = 0;
+  let selectedNode = null, selectedNode2 = null;
+  let currentZone = 'A', currentZone2 = 'D';
+  let privateTarget1 = null, privateTarget2 = null;
+  let navTarget1 = null, navTarget2 = null; // pos object being navigated to
+  let sosActive = false, sosActive2 = false;
+
+  /* Unread message count */
+  let unread1 = 0, unread2 = 0;
+
+  function addUnread(dev) {
+    if (dev === 1) { unread1++; document.querySelectorAll('.d1-badge').forEach(b=>{ b.textContent=unread1>9?'9+':unread1; b.classList.add('show'); }); }
+    else           { unread2++; document.querySelectorAll('.d2-badge').forEach(b=>{ b.textContent=unread2>9?'9+':unread2; b.classList.add('show'); }); }
+  }
+  function clearUnread(dev) {
+    if (dev === 1) { unread1=0; document.querySelectorAll('.d1-badge').forEach(b=>b.classList.remove('show')); }
+    else           { unread2=0; document.querySelectorAll('.d2-badge').forEach(b=>b.classList.remove('show')); }
+  }
+
+  /* SOS hold state */
+  let sosHoldDev = 0, sosHoldRAF = null, sosHoldStart = 0;
+  const SOS_HOLD_MS = 5000;
+
+  /* VKB state */
+  const vkbMode = {1:'th', 2:'th'};
+
+  /* Farm: 3×2 grid  Cols: A/D=[0,76] B/E=[80,155] C/F=[159,234]  Rows: top=[15,128] bot=[139,272] (H=278) */
+
+  const zoneData = {
+    A:{name:'โซน A',crop:'ข้าวโพด',    soil:65,temp:28.5,hum:72,light:82, valve1:false,valve2:true, pump:false,auto:true },
+    B:{name:'โซน B',crop:'มะเขือเทศ',  soil:38,temp:30.1,hum:58,light:91, valve1:false,valve2:false,pump:false,auto:true },
+    C:{name:'โซน C',crop:'กะหล่ำปลี',  soil:55,temp:27.8,hum:75,light:78, valve1:true, valve2:false,pump:false,auto:true },
+    D:{name:'โซน D',crop:'มันสำปะหลัง',soil:80,temp:27.2,hum:85,light:60, valve1:true, valve2:false,pump:false,auto:false},
+    E:{name:'โซน E',crop:'อ้อย',       soil:52,temp:29.5,hum:65,light:88, valve1:false,valve2:true, pump:false,auto:true },
+    F:{name:'โซน F',crop:'ไม้ผล',      soil:68,temp:28.8,hum:70,light:75, valve1:false,valve2:false,pump:true, auto:true },
+  };
+
+  const nodeData = {
+    A1:{zone:'A',label:'โซน A',crop:'ข้าวโพด',    x:20, y:66,  soil:65,temp:28.5,hum:72, light:82,rssi:-68,valve:false,pump:false},
+    A2:{zone:'A',label:'โซน A',crop:'ข้าวโพด',    x:57, y:105, soil:70,temp:29.0,hum:68, light:85,rssi:-71,valve:true, pump:false},
+    B1:{zone:'B',label:'โซน B',crop:'มะเขือเทศ',  x:95, y:57,  soil:38,temp:30.1,hum:58, light:91,rssi:-75,valve:false,pump:false},
+    B2:{zone:'B',label:'โซน B',crop:'มะเขือเทศ',  x:140,y:100, soil:42,temp:31.0,hum:55, light:88,rssi:-80,valve:false,pump:true },
+    C1:{zone:'C',label:'โซน C',crop:'กะหล่ำปลี',  x:168,y:59,  soil:55,temp:27.8,hum:75, light:78,rssi:-73,valve:true, pump:false},
+    C2:{zone:'C',label:'โซน C',crop:'กะหล่ำปลี',  x:210,y:103, soil:60,temp:28.2,hum:78, light:72,rssi:-77,valve:false,pump:false},
+    D1:{zone:'D',label:'โซน D',crop:'มันสำปะหลัง',x:20, y:169, soil:80,temp:27.2,hum:85, light:60,rssi:-72,valve:true, pump:false},
+    D2:{zone:'D',label:'โซน D',crop:'มันสำปะหลัง',x:57, y:228, soil:75,temp:27.8,hum:82, light:63,rssi:-76,valve:false,pump:false},
+    E1:{zone:'E',label:'โซน E',crop:'อ้อย',       x:95, y:179, soil:52,temp:29.5,hum:65, light:88,rssi:-74,valve:false,pump:false},
+    E2:{zone:'E',label:'โซน E',crop:'อ้อย',       x:140,y:228, soil:48,temp:30.0,hum:62, light:85,rssi:-79,valve:true, pump:false},
+    F1:{zone:'F',label:'โซน F',crop:'ไม้ผล',      x:170,y:182, soil:68,temp:28.8,hum:70, light:75,rssi:-82,valve:false,pump:false},
+    F2:{zone:'F',label:'โซน F',crop:'ไม้ผล',      x:210,y:230, soil:72,temp:29.2,hum:73, light:70,rssi:-86,valve:true, pump:true },
+    GW:{zone:'-',label:'Gateway',crop:'',          x:117,y:133, gw:true,rssi:-65},
+  };
+
+  const ME1 = { x:38, y:51, label:'LFC-01', color:'#1b5e20' };
+  const ME2 = { x:117,y:205, label:'LFC-02', color:'#01579b' };
+
+  /* ── Node list for farm page ── */
+  function buildNodeList(zone, dev) {
+    const refPos = dev === 1 ? ME1 : ME2;
+    const nodes = Object.entries(nodeData).filter(([,n]) => n.zone === zone && !n.gw);
+    const nc = document.getElementById((dev===1?'':'b-')+'node-count');
+    if (nc) nc.textContent = nodes.length + ' จุด';
+    if (!nodes.length) return '<div style="font-size:8px;color:var(--text-soft);padding:4px 0;">ไม่มีโหนดในโซนนี้</div>';
+    return nodes.map(([id,n]) => {
+      const sc = soilCol(n.soil);
+      const sigc = sigCol(n.rssi);
+      const soilPct = Math.min(100, Math.max(0, n.soil));
+      const ss=sensorStatus('soil',n.soil), ts=sensorStatus('temp',n.temp);
+      const hs=sensorStatus('hum',n.hum),  ls=sensorStatus('light',n.light);
+      const sz=signalZone(n.x, n.y, refPos.x, refPos.y);
+      return `
+        <div class="node-item">
+          <div class="node-item-head">
+            <span class="node-item-id">${id}</span>
+            <span class="node-item-soil" style="color:${sc}">${n.soil.toFixed(2)}%</span>
+            <span class="s-status ${ss.cls}" style="font-size:6.5px;padding:1px 4px;">${ss.label}</span>
+            <span class="s-status ${sz.cls}" style="font-size:6px;padding:1px 4px;">${sz.icon} ${sz.label}</span>
+            <button class="node-detail-btn" onclick="toggleNodeDetail(this)">▾</button>
+            <button class="node-nav-btn" onclick="navigateToNode(${dev},'${id}')">🗺️ นำทาง</button>
+          </div>
+          <div class="node-mini-row">
+            <div class="node-mini-item">🌱
+              <div class="node-mini-bw"><div class="node-mini-bf" style="width:${soilPct.toFixed(2)}%;background:${sc}"></div></div>
+              <span style="min-width:36px;font-size:7.5px;font-weight:700;color:${sc}">${n.soil.toFixed(2)}%</span>
+            </div>
+            <div class="node-mini-item">🌡️ ${n.temp.toFixed(2)}°C <span class="s-status ${ts.cls}" style="font-size:6px;padding:1px 3px;margin-left:2px;">${ts.label}</span></div>
+            <div class="node-mini-item">💧 ${n.hum.toFixed(2)}% <span class="s-status ${hs.cls}" style="font-size:6px;padding:1px 3px;margin-left:2px;">${hs.label}</span></div>
+            <div class="node-mini-item">☀️ ${n.light.toFixed(2)}% <span class="s-status ${ls.cls}" style="font-size:6px;padding:1px 3px;margin-left:2px;">${ls.label}</span></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function navigateToNode(dev, nodeId) {
+    if (dev === 1) {
+      selectedNode = nodeId;
+      goPage(2);
+      requestAnimationFrame(() => { requestAnimationFrame(() => showNodePopup(nodeId)); });
+    } else {
+      selectedNode2 = nodeId;
+      goPage2(2);
+      requestAnimationFrame(() => { requestAnimationFrame(() => showNodePopup2(nodeId)); });
+    }
+  }
+
+  function sigCol(rssi) {
+    return rssi > -75 ? '#2e7d32' : rssi > -85 ? '#f57c00' : '#c62828';
+  }
+  function sigAlpha(rssi, a) {
+    if (rssi > -75) return `rgba(46,125,50,${a})`;
+    if (rssi > -85) return `rgba(245,124,0,${a})`;
+    return `rgba(198,40,40,${a})`;
+  }
+  /* ── Soil status color ── */
+  function soilCol(soil) {
+    if (soil >= 60) return '#2e7d32';   // ดีมาก - เขียว
+    if (soil >= 40) return '#f57c00';   // ต้องการน้ำ - ส้ม
+    return '#c62828';                    // แห้งวิกฤต - แดง
+  }
+  /* ── Sensor status levels ── */
+  function sensorStatus(type, v) {
+    if (type === 'soil') {
+      if (v >= 65) return {label:'ดีมาก', cls:'g'};
+      if (v >= 45) return {label:'ดี',    cls:'g'};
+      if (v >= 25) return {label:'ควรเช็ค',cls:'o'};
+      return {label:'วิกฤต', cls:'r'};
+    }
+    if (type === 'temp') {
+      if (v < 20 || v > 37) return {label:'วิกฤต',  cls:'r'};
+      if (v <= 28)           return {label:'ดีมาก',  cls:'g'};
+      if (v <= 33)           return {label:'ดี',     cls:'g'};
+      return {label:'ควรเช็ค', cls:'o'};
+    }
+    if (type === 'hum') {
+      if (v >= 60 && v <= 80) return {label:'ดีมาก',  cls:'g'};
+      if (v >= 40 && v < 60)  return {label:'ดี',     cls:'g'};
+      if (v > 80 && v <= 90)  return {label:'ดี',     cls:'g'};
+      return {label:'ควรเช็ค', cls:'o'};
+    }
+    if (type === 'light') {
+      if (v >= 75) return {label:'ดีมาก',  cls:'g'};
+      if (v >= 45) return {label:'ดี',     cls:'g'};
+      if (v >= 20) return {label:'ควรเช็ค',cls:'o'};
+      return {label:'น้อยไป', cls:'r'};
+    }
+    return {label:'—', cls:'g'};
+  }
+  function setStat(id, type, val) {
+    const el = document.getElementById(id); if (!el) return;
+    const s = sensorStatus(type, val);
+    el.textContent = s.label;
+    el.className = 's-status ' + s.cls;
+  }
+  /* ── Signal zone based on pixel distance from device (rings: 50/85/118px = 500m/1km/2km) ── */
+  function signalZone(nx, ny, refX, refY) {
+    const d = Math.hypot(nx - refX, ny - refY);
+    if (d < 50)  return {label:'สัญญาณดี',    cls:'g', icon:'🟢'};
+    if (d < 85)  return {label:'ปานกลาง',     cls:'o', icon:'🟡'};
+    return           {label:'สัญญาณอ่อน', cls:'r', icon:'🔴'};
+  }
+
+  function toggleDetail(id, btn) {
+    const el = document.getElementById(id); if (!el) return;
+    const show = el.classList.toggle('show');
+    if (btn) btn.innerHTML = show ? '▴ ซ่อนรายละเอียด' : '▾ ดูรายละเอียด';
+  }
+  function toggleNodeDetail(btn) {
+    const row = btn.closest('.node-item').querySelector('.node-mini-row');
+    if (!row) return;
+    const show = row.classList.toggle('show');
+    btn.textContent = show ? '▴' : '▾';
+  }
+  function updateSigBars(containerId, rssi) {
+    const n = rssi > -65 ? 5 : rssi > -72 ? 4 : rssi > -79 ? 3 : rssi > -86 ? 2 : 1;
+    document.querySelectorAll('#'+containerId+' .sig-bar').forEach((b,i)=>b.classList.toggle('on',i<n));
+  }
+
+  function soilLabel(soil) {
+    if (soil >= 60) return '💧';
+    if (soil >= 40) return '⚠️';
+    return '🔴';
+  }
+  function getTime() {
+    const n = new Date();
+    return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+  }
+
+  /* ── Clock ── */
+  function updateClocks() {
+    const t = getTime();
+    ['clock','clock1','clock2','clock3','b-clock','b-clock1','b-clock2','b-clock3'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = t;
+    });
+  }
+  updateClocks();
+  setInterval(updateClocks, 10000);
+
+  /* ── Nav ── */
+  function goPage(n) {
+    document.querySelectorAll('#device1 .page').forEach((p,i) => p.classList.toggle('active', i === n));
+    document.querySelectorAll('#device1 .nav-btn').forEach((b,i) => b.classList.toggle('active', i % 4 === n));
+    currentPage = n;
+    if (n === 2) drawMap();
+    else closeNodePopup();
+    if (n === 3) clearUnread(1);
+  }
+
+  /* ── Actuator ── */
+  function updateAct(id, onTxt, offTxt, chk, onCls, offCls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = chk.checked ? onTxt : offTxt;
+    el.className = 'act-sub ' + (chk.checked ? onCls : offCls);
+  }
+
+  /* ── Sync zone → nodeData, redraw map if visible ── */
+  function syncZoneToMap(zone) {
+    const z = zoneData[zone];
+    Object.entries(nodeData).forEach(([id, n]) => {
+      if (n.zone !== zone) return;
+      n.pump = z.pump;
+    });
+    // map redraws itself via RAF loop if visible
+  }
+
+  /* ── Sync node → zoneData, refresh farm page if showing that zone ── */
+  function syncNodeToFarm(nodeId) {
+    const n = nodeData[nodeId];
+    const zone = n.zone;
+    if (!zone || zone === '-') return;
+    let hasPump = false;
+    Object.entries(nodeData).forEach(([id, nd]) => { if (nd.zone === zone && nd.pump) hasPump = true; });
+    zoneData[zone].pump = hasPump;
+    if (currentZone === zone && currentPage === 1) {
+      const el = document.querySelector('#device1 .zone-tab.active');
+      if (el) switchZone(el, zone);
+    }
+    if (currentZone2 === zone && currentPage2 === 1) {
+      const el = document.querySelector('#device2 .zone-tab.active');
+      if (el) switchZone2(el, zone);
+    }
+  }
+
+  /* ── Zone ── */
+  function buildActHTML(zone, z, px) {
+    function row(key, label, onTxt, offTxt) {
+      const on = z[key];
+      return `<div class="act-row">
+        <div><div class="act-name">${label}</div><div class="act-sub ${on?'on':'off'}" id="${px}z-${key}">${on?onTxt:offTxt}</div></div>
+        <label class="tog"><input type="checkbox" ${on?'checked':''}
+          onchange="zoneData['${zone}'].${key}=this.checked;updateAct('${px}z-${key}','${onTxt}','${offTxt}',this,'on','off');syncZoneToMap('${zone}')">
+        <div class="tog-track"></div><div class="tog-thumb"></div></label></div>`;
+    }
+    return row('valve1','💧 วาล์ว 1','เปิดอยู่','ปิดอยู่')
+         + row('valve2','💧 วาล์ว 2','เปิดอยู่','ปิดอยู่')
+         + row('pump',  '⚙️ ปั๊มน้ำ', 'กำลังทำงาน','หยุดทำงาน')
+         + row('auto',  '🤖 อัตโนมัติ','เปิดใช้งาน','ปิดใช้งาน');
+  }
+
+  function switchZone(el, zone) {
+    currentZone = zone;
+    el.closest('.device').querySelectorAll('.zone-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    const z = zoneData[zone];
+    document.getElementById('zoneLabel').textContent = z.name;
+    document.getElementById('actZone').textContent = z.name + ' · ' + z.crop;
+    setBar('bar-soil','val-soil',z.soil,z.soil.toFixed(2)+'%');
+    setBar('bar-temp','val-temp',z.temp/50*100,z.temp.toFixed(2)+'°C');
+    setBar('bar-hum', 'val-hum', z.hum, z.hum.toFixed(2)+'%');
+    setBar('bar-light','val-light',z.light,z.light.toFixed(2)+'%');
+    setStat('stat-soil','soil',z.soil); setStat('stat-temp','temp',z.temp);
+    setStat('stat-hum','hum',z.hum);   setStat('stat-light','light',z.light);
+    document.getElementById('bar-soil').className = 's-bar'+(z.soil<50?' warn':'');
+    document.getElementById('bar-hum').className  = 's-bar'+(z.hum>70?' warn':'');
+    document.getElementById('act-list').innerHTML = buildActHTML(zone, z, '');
+    const nl = document.getElementById('node-list');
+    if (nl) nl.innerHTML = buildNodeList(zone, 1);
+  }
+  function setBar(barId, valId, pct, txt) {
+    document.getElementById(barId).style.width = pct + '%';
+    document.getElementById(valId).textContent = txt;
+  }
+
+  /* ── Chat ── */
+  function addMsgTo(areaId, side, avatarTxt, senderTxt, bodyTxt, time) {
+    const area = document.getElementById(areaId);
+    if (!area) return;
+    const div = document.createElement('div');
+    div.className = 'msg ' + (side === 'me' ? 'me' : '');
+    const align = side === 'me' ? 'style="text-align:right"' : '';
+    div.innerHTML = `
+      <div class="msg-av">${avatarTxt}</div>
+      <div class="msg-bubble">
+        <div class="msg-who" ${align}>${senderTxt}</div>
+        <div class="msg-text">${bodyTxt}</div>
+        <div class="msg-ts">${time}</div>
+      </div>`;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim(); if (!text) return;
+    const t = getTime();
+    const label = privateTarget1 ? '[ส่วนตัว] ' : '';
+    addMsgTo('chatArea', 'me', 'ฉัน', 'ฉัน (LFC-01)', text, t);
+    if (!privateTarget1 || privateTarget1 === 'LFC-02') {
+      setTimeout(() => { addMsgTo('b-chatArea', '', 'L1', 'LFC-01', label + text, t); if (currentPage2 !== 3) addUnread(2); }, 280);
+    }
+    input.value = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && currentPage === 3) sendMsg(); });
+
+  /* ── Deactivate / Cancel SOS ── */
+  function deactivateSOS(dev) {
+    if (dev === 1) sosActive = false; else sosActive2 = false;
+    const btn = document.getElementById(dev===1?'sosBtn':'b-sosBtn');
+    if (btn) { btn.classList.remove('active'); btn.textContent = '🆘 SOS'; }
+    document.getElementById(dev===1?'mainLed':'b-mainLed')?.classList.remove('red');
+    const label = dev===1?'LFC-01':'LFC-02';
+    const ownChat = dev===1?'chatArea':'b-chatArea';
+    const otherChat = dev===1?'b-chatArea':'chatArea';
+    const t = getTime();
+    const cancelTxt = `✅ SOS ยกเลิกแล้ว — ${label} ปลอดภัยดี`;
+    addMsgTo(ownChat, 'me', '✅', 'ระบบ', cancelTxt, t);
+    setTimeout(() => { addMsgTo(otherChat, '', '✅', 'ระบบ', cancelTxt, t); if(other===1&&currentPage!==3) addUnread(1); if(other===2&&currentPage2!==3) addUnread(2); }, 280);
+    const other = dev===1?2:1;
+    dismissSOSAlert(other);
+    closeNavBanner(other);
+    if (dev===1) navTarget2=null; else navTarget1=null;
+  }
+
+  /* ── SOS Hold ── */
+  function startSOSHold(dev) {
+    /* ถ้า SOS active อยู่แล้ว → ยกเลิก SOS ทันที */
+    if ((dev===1 && sosActive) || (dev===2 && sosActive2)) {
+      deactivateSOS(dev); return;
+    }
+    if (sosHoldDev) return;
+    sosHoldDev = dev; sosHoldStart = Date.now();
+    function tick() {
+      const prog = Math.min((Date.now() - sosHoldStart) / SOS_HOLD_MS, 1);
+      const progEl = document.getElementById('d'+dev+'-sos-prog');
+      const fillEl = document.getElementById('d'+dev+'-side-fill');
+      if (progEl) progEl.style.width = (prog*100)+'%';
+      if (fillEl) fillEl.style.height = (prog*100)+'%';
+      if (prog < 1) { sosHoldRAF = requestAnimationFrame(tick); }
+      else {
+        sosHoldDev = 0;
+        if (progEl) progEl.style.width = '0%';
+        if (fillEl) fillEl.style.height = '0%';
+        showSOSReasonPicker(dev);
+      }
+    }
+    sosHoldRAF = requestAnimationFrame(tick);
+  }
+  function cancelSOSHold(dev) {
+    if (sosHoldDev !== dev) return;
+    cancelAnimationFrame(sosHoldRAF); sosHoldRAF = null; sosHoldDev = 0;
+    const progEl = document.getElementById('d'+dev+'-sos-prog');
+    const fillEl = document.getElementById('d'+dev+'-side-fill');
+    if (progEl) progEl.style.width = '0%';
+    if (fillEl) fillEl.style.height = '0%';
+  }
+
+  /* ── SOS Reason Picker ── */
+  function showSOSReasonPicker(dev) {
+    const m = document.getElementById('d'+dev+'-sos-reason');
+    if (m) m.classList.add('open');
+  }
+  function cancelSOSReason(dev) {
+    const m = document.getElementById('d'+dev+'-sos-reason');
+    if (m) m.classList.remove('open');
+  }
+  function confirmSOS(dev, reason) {
+    cancelSOSReason(dev);
+    activateSOS(dev, reason);
+  }
+
+  /* ── SOS Activate ── */
+  function makeSosDiv(t, label, reason) {
+    const div = document.createElement('div');
+    div.className = 'msg me';
+    div.innerHTML = `
+      <div class="msg-av" style="background:#c62828;border-color:#c62828;color:#fff">🆘</div>
+      <div class="msg-bubble" style="background:#ffebee;border-color:#ef9a9a">
+        <div class="msg-who" style="color:#c62828;text-align:right">⚠️ SOS — ${label}</div>
+        <div class="msg-text" style="color:#b71c1c;font-weight:700">${reason||'ต้องการความช่วยเหลือ!'}</div>
+        <div class="msg-ts">${t}</div>
+      </div>`;
+    return div;
+  }
+
+  function activateSOS(dev, reason) {
+    const other = dev === 1 ? 2 : 1;
+    const label = dev === 1 ? 'LFC-01' : 'LFC-02';
+    const ownChat = dev === 1 ? 'chatArea' : 'b-chatArea';
+    const otherChat = dev === 1 ? 'b-chatArea' : 'chatArea';
+    const btnId = dev === 1 ? 'sosBtn' : 'b-sosBtn';
+    const ledId = dev === 1 ? 'mainLed' : 'b-mainLed';
+    if (dev === 1) sosActive = true; else sosActive2 = true;
+    const btn = document.getElementById(btnId);
+    if (btn) { btn.classList.add('active'); btn.textContent = '🆘 SOS กำลังส่ง!'; }
+    document.getElementById(ledId)?.classList.add('red');
+    const t = getTime();
+    const a1 = document.getElementById(ownChat);
+    if (a1) { a1.appendChild(makeSosDiv(t, label, reason)); a1.scrollTop = a1.scrollHeight; }
+    setTimeout(() => {
+      const a2 = document.getElementById(otherChat);
+      if (a2) { a2.appendChild(makeSosDiv(t, label, reason)); a2.scrollTop = a2.scrollHeight; }
+      if (other===1 && currentPage!==3) addUnread(1);
+      if (other===2 && currentPage2!==3) addUnread(2);
+    }, 300);
+    if (dev === 1) goPage(3); else goPage2(3);
+    setTimeout(() => showSOSAlert(other, label, reason), 500);
+  }
+
+  /* ── SOS Alert on other device ── */
+  function showSOSAlert(dev, from, reason) {
+    const el = document.getElementById('d'+dev+'-sos-alert');
+    if (!el) return;
+    document.getElementById('d'+dev+'-alert-from').textContent = 'จาก: ' + from;
+    document.getElementById('d'+dev+'-alert-reason').textContent = reason;
+    el.classList.add('open');
+  }
+  function dismissSOSAlert(dev) {
+    const el = document.getElementById('d'+dev+'-sos-alert');
+    if (el) el.classList.remove('open');
+  }
+
+  /* ── SOS Navigation ── */
+  function navToSOS(dev) {
+    dismissSOSAlert(dev);
+    const senderDev = dev === 1 ? 2 : 1;
+    const senderPos = senderDev === 1 ? ME1 : ME2;
+    const myPos = dev === 1 ? ME1 : ME2;
+    if (dev === 1) navTarget1 = senderPos; else navTarget2 = senderPos;
+    const dist = Math.round(Math.hypot(senderPos.x - myPos.x, senderPos.y - myPos.y) * 8);
+    const infoEl = document.getElementById('d'+dev+'-nav-info');
+    if (infoEl) infoEl.textContent = '↗ ' + (senderDev===1?'LFC-01':'LFC-02') + ' · ~'+dist+' ม.';
+    const banner = document.getElementById('d'+dev+'-nav-banner');
+    if (banner) banner.classList.add('active');
+    if (dev === 1) goPage(2); else goPage2(2);
+  }
+  function closeNavBanner(dev) {
+    const banner = document.getElementById('d'+dev+'-nav-banner');
+    if (banner) banner.classList.remove('active');
+    if (dev === 1) navTarget1 = null; else navTarget2 = null;
+  }
+
+  /* ── Private Chat ── */
+  function togglePrivateChat(dev, target) {
+    const cur = dev === 1 ? privateTarget1 : privateTarget2;
+    if (cur === target) { closePrivateChat(dev); return; }
+    if (dev === 1) privateTarget1 = target; else privateTarget2 = target;
+    const banner = document.getElementById('d'+dev+'-private-banner');
+    if (banner) { banner.querySelector('.pb-text').textContent = '📨 แชทส่วนตัวกับ '+target; banner.classList.add('active'); }
+    const chipId = dev === 1 ? 'd1-chip-lfc02' : 'd2-chip-lfc01';
+    document.getElementById(chipId)?.classList.add('priv-active');
+    if (dev === 1) goPage(3); else goPage2(3);
+  }
+  function closePrivateChat(dev) {
+    if (dev === 1) privateTarget1 = null; else privateTarget2 = null;
+    document.getElementById('d'+dev+'-private-banner')?.classList.remove('active');
+    const chipId = dev === 1 ? 'd1-chip-lfc02' : 'd2-chip-lfc01';
+    document.getElementById(chipId)?.classList.remove('priv-active');
+  }
+
+  /* ── Share Location ── */
+  function shareLocation() {
+    const t = getTime();
+    const txt = '📍 ตำแหน่งของฉัน: 13.7563°N, 100.501°E';
+    addMsgTo('chatArea', 'me', 'ฉัน', 'ฉัน (LFC-01)', txt, t);
+    setTimeout(() => addMsgTo('b-chatArea', '', 'L1', 'LFC-01', txt, t), 280);
+    goPage(3);
+  }
+
+  /* ── Virtual Keyboard ── */
+  const VKB = {
+    th: [
+      ['ก','ข','ค','ง','จ','ช','ซ','ห','ป','ต'],
+      ['ด','น','บ','พ','ฟ','ม','ย','ร','ล','ว'],
+      ['ส','อ','เ','แ','โ','ใ','ไ','า','ิ','ี'],
+      ['ุ','ู','็','้','่','ๆ','ฯ','ภ','ถ','ท'],
+    ],
+    en: [
+      ['q','w','e','r','t','y','u','i','o','p'],
+      ['a','s','d','f','g','h','j','k','l'],
+      ['z','x','c','v','b','n','m'],
+    ],
+    num: [
+      ['1','2','3','4','5','6','7','8','9','0'],
+      ['+','-','=','×','/',':','.','!','?','@'],
+    ]
+  };
+  const VKB_MODES = ['th','en','num'];
+  const VKB_LABELS = {th:'EN',en:'123',num:'ไทย'};
+
+  function buildVKB(dev) {
+    const el = document.getElementById('d'+dev+'-vkb');
+    if (!el) return;
+    renderVKB(dev);
+  }
+  function renderVKB(dev) {
+    const el = document.getElementById('d'+dev+'-vkb');
+    if (!el) return;
+    const mode = vkbMode[dev];
+    const rows = VKB[mode];
+    let html = '';
+    rows.forEach(row => {
+      html += '<div class="vkb-row">';
+      row.forEach(ch => {
+        html += `<button class="vkb-key" onmousedown="event.preventDefault();vkbType(${dev},'${ch}')">${ch}</button>`;
+      });
+      html += '</div>';
+    });
+    html += `<div class="vkb-row">
+      <button class="vkb-key act" onmousedown="event.preventDefault();cycleVKB(${dev})">${VKB_LABELS[mode]}</button>
+      <button class="vkb-key spc" onmousedown="event.preventDefault();vkbType(${dev},' ')">เว้นวรรค</button>
+      <button class="vkb-key act" onmousedown="event.preventDefault();vkbType(${dev},'⌫')">⌫</button>
+      <button class="vkb-key act send-key" onmousedown="event.preventDefault();vkbType(${dev},'↵')">↵</button>
+    </div>`;
+    el.innerHTML = html;
+  }
+  function cycleVKB(dev) {
+    const cur = VKB_MODES.indexOf(vkbMode[dev]);
+    vkbMode[dev] = VKB_MODES[(cur+1)%VKB_MODES.length];
+    renderVKB(dev);
+  }
+  function toggleVKB(dev) {
+    const el = document.getElementById('d'+dev+'-vkb');
+    const btn = document.getElementById('d'+dev+'-vkb-btn');
+    if (!el) return;
+    el.classList.toggle('open');
+    btn?.classList.toggle('on', el.classList.contains('open'));
+  }
+  function vkbType(dev, ch) {
+    const id = (dev===1?'':'b-')+'msgInput';
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    if (ch === '⌫') inp.value = inp.value.slice(0,-1);
+    else if (ch === '↵') { if(dev===1) sendMsg(); else sendMsg2(); }
+    else inp.value += ch;
+  }
+
+  /* ── Navigation arrow in drawNavArrow ── */
+  function drawNavArrow(ctx, from, to) {
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const ang = Math.atan2(dy, dx);
+    ctx.save();
+    ctx.strokeStyle = '#ff1744'; ctx.lineWidth = 2;
+    ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.save(); ctx.translate(to.x, to.y); ctx.rotate(ang);
+    ctx.fillStyle = '#ff1744';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-10,5); ctx.lineTo(-8,0); ctx.lineTo(-10,-5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    const p = (Date.now()%1400)/1400;
+    ctx.beginPath(); ctx.arc(to.x, to.y, 14+p*8, 0, Math.PI*2);
+    ctx.strokeStyle='#ff1744'; ctx.globalAlpha=0.6*(1-p); ctx.lineWidth=2; ctx.stroke(); ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
+  /* ── Shared 6-zone farm map (H=278) ── */
+  function drawFarmMap(ctx, W, H, myPos, friendPos, selNode, navTarget) {
+    const cH=16, p1=78, p2=157, p3=161, rY=128, rH=12, bY=140, zB=272;
+
+    /* === BACKGROUND === */
+    ctx.fillStyle='#8d6e63'; ctx.fillRect(0,0,W,H);
+
+    /* === IRRIGATION CANAL (top) === */
+    const cg=ctx.createLinearGradient(0,0,0,cH);
+    cg.addColorStop(0,'#80d8ff');cg.addColorStop(1,'#039be5');
+    ctx.fillStyle=cg; ctx.fillRect(0,0,W,cH);
+    /* water ripple */
+    const tw=(Date.now()/600)%W;
+    ctx.fillStyle='rgba(255,255,255,.25)';
+    for(let i=0;i<7;i++)ctx.fillRect((tw+i*36)%W,3,18,4);
+    ctx.font='bold 7.5px Sarabun,sans-serif'; ctx.fillStyle='#e1f5fe'; ctx.textAlign='center';
+    ctx.fillText('คลองชลประทาน',W/2,12);
+
+    /* === ZONE DIVIDERS === */
+    ctx.fillStyle='#795548';
+    [[p1-2,cH,4,rY-cH],[p2-2,cH,4,rY-cH],
+     [p1-2,bY,4,zB-bY],[p2-2,bY,4,zB-bY]].forEach(([x,y,w,h])=>ctx.fillRect(x,y,w,h));
+
+    /* === ROAD === */
+    const rg=ctx.createLinearGradient(0,rY,0,rY+rH);
+    rg.addColorStop(0,'#d7ccc8');rg.addColorStop(1,'#bcaaa4');
+    ctx.fillStyle=rg; ctx.fillRect(0,rY,W,rH);
+    ctx.strokeStyle='rgba(255,245,157,.7)'; ctx.setLineDash([8,6]); ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(0,rY+6);ctx.lineTo(W,rY+6);ctx.stroke();ctx.setLineDash([]);
+    ctx.font='bold 6px Sarabun,sans-serif'; ctx.fillStyle='#6d4c41'; ctx.textAlign='center';
+    ctx.fillText('ถนนหลัก',W/2,rY+10);
+
+    /* === ZONE DRAW HELPER === */
+    const zones = [
+      {id:'A',x:0,   y:cH, w:p1-2,  h:rY-cH,  bg:'#c8e6c9',pat:'rows',  c:'#2e7d32',name:'A',crop:'ข้าวโพด'},
+      {id:'B',x:p1+2,y:cH, w:p2-p1-4,h:rY-cH, bg:'#ffccbc',pat:'dots',  c:'#bf360c',name:'B',crop:'มะเขือเทศ'},
+      {id:'C',x:p3,  y:cH, w:W-p3,   h:rY-cH, bg:'#b3e5fc',pat:'cross', c:'#01579b',name:'C',crop:'กะหล่ำปลี'},
+      {id:'D',x:0,   y:bY, w:p1-2,   h:zB-bY, bg:'#ffe0b2',pat:'diag',  c:'#e65100',name:'D',crop:'มันสำปะหลัง'},
+      {id:'E',x:p1+2,y:bY, w:p2-p1-4,h:zB-bY, bg:'#e1bee7',pat:'vlines',c:'#6a1b9a',name:'E',crop:'อ้อย'},
+      {id:'F',x:p3,  y:bY, w:W-p3,   h:zB-bY, bg:'#fce4ec',pat:'circles',c:'#880e4f',name:'F',crop:'ไม้ผล'},
+    ];
+
+    zones.forEach(z=>{
+      /* fill */
+      ctx.fillStyle=z.bg; ctx.fillRect(z.x,z.y,z.w,z.h);
+      /* border */
+      ctx.strokeStyle=z.c+'55'; ctx.lineWidth=1.5;
+      ctx.strokeRect(z.x+0.75,z.y+0.75,z.w-1.5,z.h-1.5);
+      /* texture */
+      ctx.save(); ctx.beginPath(); ctx.rect(z.x,z.y,z.w,z.h); ctx.clip();
+      if(z.pat==='rows'){
+        ctx.strokeStyle=z.c+'30'; ctx.lineWidth=1;
+        for(let yy=z.y+9;yy<z.y+z.h;yy+=9){ctx.beginPath();ctx.moveTo(z.x+2,yy);ctx.lineTo(z.x+z.w-2,yy);ctx.stroke();}
+      }else if(z.pat==='dots'){
+        ctx.fillStyle=z.c+'28';
+        for(let gx=z.x+10;gx<z.x+z.w-4;gx+=12)for(let gy=z.y+9;gy<z.y+z.h-4;gy+=10){ctx.beginPath();ctx.arc(gx,gy,2.5,0,Math.PI*2);ctx.fill();}
+      }else if(z.pat==='cross'){
+        ctx.strokeStyle=z.c+'25'; ctx.lineWidth=1;
+        for(let gx=z.x+10;gx<z.x+z.w-4;gx+=13)for(let gy=z.y+8;gy<z.y+z.h-4;gy+=11){
+          ctx.beginPath();ctx.moveTo(gx-3,gy-3);ctx.lineTo(gx+3,gy+3);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(gx+3,gy-3);ctx.lineTo(gx-3,gy+3);ctx.stroke();
+        }
+      }else if(z.pat==='diag'){
+        ctx.strokeStyle=z.c+'22'; ctx.lineWidth=1;
+        for(let d=z.x-60;d<z.x+z.w+60;d+=15){ctx.beginPath();ctx.moveTo(d,z.y);ctx.lineTo(d+60,z.y+z.h);ctx.stroke();}
+      }else if(z.pat==='vlines'){
+        ctx.strokeStyle=z.c+'28'; ctx.lineWidth=1;
+        for(let gx=z.x+9;gx<z.x+z.w-3;gx+=10){ctx.beginPath();ctx.moveTo(gx,z.y+3);ctx.lineTo(gx,z.y+z.h-3);ctx.stroke();}
+      }else if(z.pat==='circles'){
+        ctx.fillStyle=z.c+'1a';
+        for(let gx=z.x+12;gx<z.x+z.w-4;gx+=16)for(let gy=z.y+12;gy<z.y+z.h-4;gy+=16){ctx.beginPath();ctx.arc(gx,gy,5.5,0,Math.PI*2);ctx.fill();}
+      }
+      ctx.restore();
+      /* zone label badge */
+      const cx=z.x+z.w/2, cy=z.y+14;
+      ctx.font='bold 8.5px Sarabun,sans-serif'; ctx.textAlign='center';
+      const tw2=ctx.measureText('โซน '+z.name).width;
+      ctx.fillStyle=z.c+'ee'; roundRect(ctx,cx-tw2/2-4,cy-10,tw2+8,12,3); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.fillText('โซน '+z.name,cx,cy);
+      ctx.font='6.5px Sarabun,sans-serif'; ctx.fillStyle=z.c+'cc'; ctx.fillText(z.crop,cx,cy+12);
+    });
+
+    /* === DEVICE RANGE CIRCLES — วงทึบซ้อน นอก→ใน (แดง→เหลือง→เขียว) === */
+    function drawRanges(px,py,showLabel){
+      /* วาดจากวงนอกสุดก่อน แล้วซ้อนด้วยวงในเพื่อสร้าง band effect */
+      const bands=[
+        [118,'198,40,40',  .20, '>1กม. ไม่เสถียร'],
+        [85, '210,120,0',  .22, '<1กม. ปานกลาง'],
+        [50, '46,125,50',  .26, '<500ม. เสถียร']
+      ];
+      bands.forEach(([rad,rgb,alpha])=>{
+        ctx.beginPath();ctx.arc(px,py,rad,0,Math.PI*2);
+        ctx.fillStyle=`rgba(${rgb},${alpha})`;ctx.fill();
+      });
+      /* วงขอบบาง ไม่มีเส้นปะ */
+      bands.forEach(([rad,rgb,alpha])=>{
+        ctx.beginPath();ctx.arc(px,py,rad,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(${rgb},${alpha*2.2})`;
+        ctx.lineWidth=1.2;ctx.stroke();
+      });
+      if(showLabel){
+        bands.forEach(([rad,rgb,,lbl])=>{
+          ctx.font='5.5px Sarabun,sans-serif';ctx.textAlign='left';
+          ctx.fillStyle=`rgba(${rgb},.75)`;
+          ctx.fillText(lbl, px+rad+2, py+2);
+        });
+      }
+    }
+    drawRanges(ME1.x,ME1.y,true);
+    drawRanges(ME2.x,ME2.y,false);
+
+    /* === IRRIGATION PIPES === */
+    ctx.strokeStyle='rgba(3,155,229,.55)'; ctx.setLineDash([4,3]); ctx.lineWidth=1.5;
+    [30,117,200].forEach(x=>{
+      ctx.beginPath();ctx.moveTo(x,cH);ctx.lineTo(x,cH+18);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x,bY);ctx.lineTo(x,bY+20);ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    /* pipe dots (valves) */
+    ctx.fillStyle='#03a9f4';
+    [30,117,200].forEach(x=>[cH+18,bY+20].forEach(y=>{ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();}));
+
+    /* === NODES === */
+    Object.entries(nodeData).forEach(([id,n])=>{
+      const isSel=(id===selNode);
+      if(n.gw){
+        /* gateway diamond */
+        if(isSel){ctx.save();ctx.translate(n.x,n.y);ctx.rotate(Math.PI/4);ctx.fillStyle='rgba(255,235,59,.5)';ctx.fillRect(-13,-13,26,26);ctx.restore();}
+        ctx.save();ctx.translate(n.x,n.y);ctx.rotate(Math.PI/4);
+        ctx.fillStyle='#1b5e20';ctx.fillRect(-7,-7,14,14);
+        ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1.5;ctx.strokeRect(-7,-7,14,14);ctx.restore();
+        /* GW label */
+        ctx.font='bold 7.5px Sarabun,sans-serif';ctx.textAlign='center';
+        const gw2=ctx.measureText('GW').width+6;
+        ctx.fillStyle='rgba(27,94,32,.9)';roundRect(ctx,n.x-gw2/2,n.y-22,gw2,11,3);ctx.fill();
+        ctx.fillStyle='#fff';ctx.fillText('GW',n.x,n.y-13);
+        return;
+      }
+      const sCol=soilCol(n.soil);   /* สีตามความชื้นดิน */
+      const sigC=sigCol(n.rssi);    /* สีตามสัญญาณ (ใช้ halo) */
+      /* selection halo */
+      if(isSel){ctx.beginPath();ctx.arc(n.x,n.y,16,0,Math.PI*2);ctx.fillStyle='rgba(255,235,59,.45)';ctx.fill();}
+      /* soil status ring (outer) */
+      ctx.beginPath();ctx.arc(n.x,n.y,11,0,Math.PI*2);ctx.strokeStyle=sCol;ctx.lineWidth=2;ctx.globalAlpha=.5;ctx.stroke();ctx.globalAlpha=1;
+      /* valve ring inner */
+      if(n.valve){ctx.beginPath();ctx.arc(n.x,n.y,8.5,0,Math.PI*2);ctx.strokeStyle='#29b6f6';ctx.lineWidth=1.5;ctx.stroke();}
+      /* signal halo fill */
+      ctx.beginPath();ctx.arc(n.x,n.y,7,0,Math.PI*2);ctx.fillStyle=sigAlpha(n.rssi,.2);ctx.fill();
+      /* node circle — soil color */
+      ctx.beginPath();ctx.arc(n.x,n.y,6,0,Math.PI*2);ctx.fillStyle=sCol;ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.95)';ctx.lineWidth=1.5;ctx.stroke();
+      /* center dot */
+      ctx.beginPath();ctx.arc(n.x,n.y,2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.9)';ctx.fill();
+      /* pump indicator */
+      if(n.pump){ctx.beginPath();ctx.arc(n.x+6,n.y-6,3,0,Math.PI*2);ctx.fillStyle='#ff9800';ctx.fill();}
+      /* node ID badge — soil color */
+      ctx.font='bold 7px Sarabun,sans-serif';ctx.textAlign='center';
+      const lw=ctx.measureText(id).width+5;
+      ctx.fillStyle='rgba(255,255,255,.92)';roundRect(ctx,n.x-lw/2,n.y-21,lw,10,2);ctx.fill();
+      ctx.fillStyle=sCol;ctx.fillText(id,n.x,n.y-13);
+      /* soil % mini label */
+      ctx.font='5.5px Sarabun,sans-serif';ctx.fillStyle=sCol;ctx.fillText(n.soil.toFixed(2)+'%',n.x,n.y-1);
+    });
+
+    /* === USER MARKERS === */
+    function drawUser(x,y,lbl,col,isMe){
+      if(isMe){
+        const p=(Date.now()%1600)/1600;
+        ctx.beginPath();ctx.arc(x,y,10+p*6,0,Math.PI*2);
+        ctx.strokeStyle=col;ctx.globalAlpha=0.35*(1-p);ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;
+      }
+      /* crosshair lines */
+      [[x-14,y,x-8,y],[x+8,y,x+14,y],[x,y-14,x,y-8],[x,y+8,x,y+14]].forEach(([x1,y1,x2,y2])=>{
+        ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+        ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=.7;ctx.stroke();ctx.globalAlpha=1;
+      });
+      /* marker */
+      ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+      /* label badge */
+      ctx.font='bold 7px Sarabun,sans-serif';ctx.textAlign='center';
+      const lw2=ctx.measureText(lbl).width+7;
+      ctx.fillStyle='rgba(255,255,255,.92)';roundRect(ctx,x-lw2/2,y+9,lw2,11,3);ctx.fill();
+      ctx.fillStyle=col;ctx.fillText(lbl,x,y+19);
+    }
+    drawUser(friendPos.x,friendPos.y,friendPos.label,friendPos.color,false);
+    drawUser(myPos.x,myPos.y,myPos.label,myPos.color,true);
+
+    /* === SOIL LEGEND === */
+    const lgx=4, lgy=H-38;
+    ctx.fillStyle='rgba(255,255,255,.8)'; roundRect(ctx,lgx,lgy,60,36,4); ctx.fill();
+    ctx.font='bold 5.5px Sarabun,sans-serif'; ctx.textAlign='left';
+    [['#2e7d32','≥60% ดีมาก'],['#f57c00','40-60% ต้องน้ำ'],['#c62828','<40% วิกฤต']].forEach(([c,t],i)=>{
+      ctx.beginPath();ctx.arc(lgx+6,lgy+8+i*10,3,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();
+      ctx.fillStyle='#333';ctx.fillText(t,lgx+12,lgy+11+i*10);
+    });
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.font='5px Sarabun,sans-serif';ctx.textAlign='left';
+    ctx.fillText('ความชื้นดิน',lgx+4,lgy+5);
+    /* === SIGNAL ZONE LEGEND === */
+    const slx=68, sly=H-38;
+    ctx.fillStyle='rgba(255,255,255,.8)'; roundRect(ctx,slx,sly,72,36,4); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.font='5px Sarabun,sans-serif';ctx.textAlign='left';
+    ctx.fillText('รัศมีสัญญาณ LoRa',slx+4,sly+5);
+    ctx.font='bold 5.5px Sarabun,sans-serif';
+    [['rgb(46,125,50)','<500ม. เสถียร'],['rgb(200,100,0)','<1กม. ปานกลาง'],['rgb(198,40,40)','>1กม. ไม่เสถียร']].forEach(([c,t],i)=>{
+      ctx.beginPath();ctx.arc(slx+6,sly+8+i*10,3,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();
+      ctx.fillStyle='#333';ctx.fillText(t,slx+12,sly+11+i*10);
+    });
+
+    /* === COMPASS === */
+    const cx2=W-14,cy2=H-14;
+    ctx.fillStyle='rgba(255,255,255,.75)';ctx.beginPath();ctx.arc(cx2,cy2,10,0,Math.PI*2);ctx.fill();
+    ctx.font='bold 6px Sarabun,sans-serif';ctx.textAlign='center';
+    ctx.fillStyle='#c62828';ctx.fillText('N',cx2,cy2-3);
+    ctx.fillStyle='#424242';ctx.fillText('S',cx2,cy2+8);
+    ctx.fillStyle='#424242';ctx.font='5px Sarabun,sans-serif';
+    ctx.fillText('W',cx2-7,cy2+2.5);ctx.fillText('E',cx2+7,cy2+2.5);
+
+    /* === HINT === */
+    ctx.font='6.5px Sarabun,sans-serif';ctx.fillStyle='rgba(255,255,255,.5)';ctx.textAlign='center';
+    ctx.fillText('แตะโหนด/เครื่องเพื่อดูข้อมูล',W/2-10,H-1);
+
+    /* === NAVIGATION ARROW === */
+    if (navTarget) drawNavArrow(ctx, myPos, navTarget);
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+    ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+    ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+    ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+  }
+
+  /* ── Map wrappers (2x HiDPI) ── */
+  function drawMap() {
+    const c=document.getElementById('mapCanvas'); if(!c) return;
+    const ctx=c.getContext('2d');
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.save(); ctx.scale(2,2);
+    drawFarmMap(ctx,c.width/2,c.height/2,ME1,ME2,selectedNode,navTarget1);
+    ctx.restore();
+    if(currentPage===2) requestAnimationFrame(drawMap);
+  }
+  function drawMap2() {
+    const c=document.getElementById('b-mapCanvas'); if(!c) return;
+    const ctx=c.getContext('2d');
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.save(); ctx.scale(2,2);
+    drawFarmMap(ctx,c.width/2,c.height/2,ME2,ME1,selectedNode2,navTarget2);
+    ctx.restore();
+    if(currentPage2===2) requestAnimationFrame(drawMap2);
+  }
+
+  /* ── Canvas tap: CSS coords (no scaling needed — logical=CSS space) ── */
+  function hitNode(mx,my){
+    let h=null;
+    Object.entries(nodeData).forEach(([id,n])=>{ if(Math.hypot(mx-n.x,my-n.y)<14) h=id; });
+    return h;
+  }
+  document.getElementById('mapCanvas').addEventListener('click',function(e){
+    const r=this.getBoundingClientRect();
+    const mx=e.clientX-r.left, my=e.clientY-r.top;
+    if(Math.hypot(mx-ME2.x,my-ME2.y)<14){ togglePrivateChat(1,'LFC-02'); return; }
+    const hit=hitNode(mx,my);
+    if(hit){selectedNode=hit;showNodePopup(hit);}else{selectedNode=null;closeNodePopup();}
+  });
+  document.getElementById('b-mapCanvas').addEventListener('click',function(e){
+    const r=this.getBoundingClientRect();
+    const mx=e.clientX-r.left, my=e.clientY-r.top;
+    if(Math.hypot(mx-ME1.x,my-ME1.y)<14){ togglePrivateChat(2,'LFC-01'); return; }
+    const hit=hitNode(mx,my);
+    if(hit){selectedNode2=hit;showNodePopup2(hit);}else{selectedNode2=null;closeNodePopup2();}
+  });
+
+  /* ── Node popup ── */
+  function buildPopupSensors(n) {
+    const ss=sensorStatus('soil',n.soil), ts=sensorStatus('temp',n.temp);
+    const hs=sensorStatus('hum',n.hum),  ls=sensorStatus('light',n.light);
+    return `
+      <div class="p-sensor"><span class="p-s-icon">🌱</span>
+        <div class="p-s-bar-wrap"><div class="p-s-bar${n.soil<50?' warn':''}" style="width:${n.soil.toFixed(2)}%"></div></div>
+        <span class="p-s-val">${n.soil.toFixed(2)}%</span>
+        <span class="p-s-status ${ss.cls}">${ss.label}</span></div>
+      <div class="p-sensor"><span class="p-s-icon">🌡️</span>
+        <div class="p-s-bar-wrap"><div class="p-s-bar" style="width:${(n.temp/50*100).toFixed(2)}%"></div></div>
+        <span class="p-s-val">${n.temp.toFixed(2)}°C</span>
+        <span class="p-s-status ${ts.cls}">${ts.label}</span></div>
+      <div class="p-sensor"><span class="p-s-icon">💧</span>
+        <div class="p-s-bar-wrap"><div class="p-s-bar${n.hum>70?' warn':''}" style="width:${n.hum.toFixed(2)}%"></div></div>
+        <span class="p-s-val">${n.hum.toFixed(2)}%</span>
+        <span class="p-s-status ${hs.cls}">${hs.label}</span></div>
+      <div class="p-sensor"><span class="p-s-icon">☀️</span>
+        <div class="p-s-bar-wrap"><div class="p-s-bar" style="width:${n.light.toFixed(2)}%"></div></div>
+        <span class="p-s-val">${n.light.toFixed(2)}%</span>
+        <span class="p-s-status ${ls.cls}">${ls.label}</span></div>`;
+  }
+  function buildPopupActs(id) {
+    const n = nodeData[id];
+    return `
+      <div class="p-act"><span class="p-act-name">💧 วาล์ว</span>
+        <label class="tog sm"><input type="checkbox" ${n.valve?'checked':''}
+          onchange="nodeData['${id}'].valve=this.checked;syncNodeToFarm('${id}')">
+          <div class="tog-track"></div><div class="tog-thumb"></div></label></div>
+      <div class="p-act"><span class="p-act-name">⚙️ ปั๊ม</span>
+        <label class="tog sm"><input type="checkbox" ${n.pump?'checked':''}
+          onchange="nodeData['${id}'].pump=this.checked;syncNodeToFarm('${id}')">
+          <div class="tog-track"></div><div class="tog-thumb"></div></label></div>`;
+  }
+
+  function showNodePopup(id) {
+    const n = nodeData[id]; if (!n) return;
+    document.getElementById('pp-id').textContent = id;
+    document.getElementById('pp-zone').textContent = n.gw ? 'Gateway หลัก' : n.label+' · '+n.crop;
+    const re = document.getElementById('pp-rssi');
+    re.textContent = n.rssi+' dBm'; re.style.color = sigCol(n.rssi);
+    const szEl = document.getElementById('pp-sigzone');
+    if (szEl && !n.gw) { const sz=signalZone(n.x,n.y,ME1.x,ME1.y); szEl.textContent=sz.icon+' '+sz.label; szEl.className='s-status '+sz.cls; szEl.style.cssText='font-size:7px;padding:2px 5px;'; szEl.style.display=''; }
+    else if (szEl) szEl.style.display='none';
+    const sb = document.getElementById('pp-sensors');
+    const ab = document.getElementById('pp-acts');
+    if (n.gw) { sb.innerHTML='<div style="font-size:9px;color:var(--text-soft);padding:4px 0 2px;">📡 เชื่อมต่อกับ 12 โหนด</div>'; ab.innerHTML=''; }
+    else { sb.innerHTML=buildPopupSensors(n); ab.innerHTML=buildPopupActs(id); }
+    document.getElementById('nodePopup').style.display='block';
+  }
+  function closeNodePopup() {
+    const p=document.getElementById('nodePopup'); if(p) p.style.display='none'; selectedNode=null;
+  }
+
+  /* ── Device 2 functions ── */
+  function goPage2(n) {
+    currentPage2 = n;
+    document.querySelectorAll('#device2 .page').forEach((p,i)=>p.classList.toggle('active',i===n));
+    document.querySelectorAll('#device2 .nav-btn').forEach((b,i)=>b.classList.toggle('active',i===n));
+    if (n===2) drawMap2();
+    else closeNodePopup2();
+    if (n===3) clearUnread(2);
+  }
+  function switchZone2(el, zone) {
+    currentZone2 = zone;
+    el.closest('.device').querySelectorAll('.zone-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    const z = zoneData[zone];
+    document.getElementById('b-zoneLabel').textContent = z.name;
+    document.getElementById('b-actZone').textContent = z.name+' · '+z.crop;
+    setBar2('b-bar-soil','b-val-soil',z.soil,z.soil.toFixed(2)+'%');
+    setBar2('b-bar-temp','b-val-temp',z.temp/50*100,z.temp.toFixed(2)+'°C');
+    setBar2('b-bar-hum','b-val-hum',z.hum,z.hum.toFixed(2)+'%');
+    setBar2('b-bar-light','b-val-light',z.light,z.light.toFixed(2)+'%');
+    setStat('b-stat-soil','soil',z.soil); setStat('b-stat-temp','temp',z.temp);
+    setStat('b-stat-hum','hum',z.hum);   setStat('b-stat-light','light',z.light);
+    document.getElementById('b-bar-soil').className='s-bar'+(z.soil<50?' warn':'');
+    document.getElementById('b-bar-hum').className='s-bar'+(z.hum>70?' warn':'');
+    document.getElementById('b-act-list').innerHTML=buildActHTML(zone,z,'b-');
+    const nl2=document.getElementById('b-node-list');
+    if(nl2) nl2.innerHTML=buildNodeList(zone,2);
+  }
+  function setBar2(barId,valId,pct,txt){
+    const b=document.getElementById(barId),v=document.getElementById(valId);
+    if(b)b.style.width=pct+'%'; if(v)v.textContent=txt;
+  }
+  function sendMsg2() {
+    const inp=document.getElementById('b-msgInput');
+    const text=(inp.value||'').trim(); if(!text) return;
+    inp.value='';
+    /* notify device1 if not on chat */
+    const t=getTime();
+    const label=privateTarget2?'[ส่วนตัว] ':'';
+    addMsgTo('b-chatArea','me','ฉัน','ฉัน (LFC-02)',text,t);
+    if(!privateTarget2||privateTarget2==='LFC-01') {
+      setTimeout(()=>{ addMsgTo('chatArea','','L2','LFC-02',label+text,t); if(currentPage!==3) addUnread(1); },280);
+    }
+  }
+  function shareLocation2() {
+    const t=getTime();
+    const msg='📍 ตำแหน่ง LFC-02 · แปลง D5 กลางไร่';
+    addMsgTo('b-chatArea','me','ฉัน','ฉัน (LFC-02)',msg,t);
+    setTimeout(()=>addMsgTo('chatArea','','L2','LFC-02',msg,t),280);
+  }
+  function showNodePopup2(id) {
+    const n=nodeData[id]; if(!n) return;
+    document.getElementById('b-pp-id').textContent=id;
+    document.getElementById('b-pp-zone').textContent=n.gw?'Gateway หลัก':n.label+' · '+n.crop;
+    const re=document.getElementById('b-pp-rssi');
+    re.textContent=n.rssi+' dBm'; re.style.color=sigCol(n.rssi);
+    const szEl=document.getElementById('b-pp-sigzone');
+    if(szEl && !n.gw){const sz=signalZone(n.x,n.y,ME2.x,ME2.y);szEl.textContent=sz.icon+' '+sz.label;szEl.className='s-status '+sz.cls;szEl.style.cssText='font-size:7px;padding:2px 5px;';szEl.style.display='';}
+    else if(szEl) szEl.style.display='none';
+    const sb=document.getElementById('b-pp-sensors');
+    const ab=document.getElementById('b-pp-acts');
+    if(n.gw){sb.innerHTML='<div style="font-size:9px;color:var(--text-soft);padding:4px 0 2px;">📡 เชื่อมต่อกับ 12 โหนด</div>';ab.innerHTML='';}
+    else{sb.innerHTML=buildPopupSensors(n);ab.innerHTML=buildPopupActs(id);}
+    document.getElementById('b-nodePopup').style.display='block';
+  }
+  function closeNodePopup2() {
+    const p=document.getElementById('b-nodePopup'); if(p) p.style.display='none'; selectedNode2=null;
+  }
+
+  document.getElementById('b-msgInput').addEventListener('keydown',e=>{ if(e.key==='Enter') sendMsg2(); });
+
+  /* ── Live data + Realtime Sensor Sync ── */
+  let _bat1=90, _bat2=82, _cur1=67.5, _cur2=62, _sol1=18, _sol2=15, _rssi1=-72, _rssi2=-78;
+
+  function _clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+  function _drift(v,d,mn,mx){return _clamp(v+(Math.random()-.5)*d,mn,mx);}
+
+  function refreshFarmUI() {
+    /* Device1 farm page */
+    if (currentPage===1) {
+      const el=document.querySelector('#device1 .zone-tab.active');
+      if(el) switchZone(el, currentZone);
+    }
+    /* Device2 farm page */
+    if (currentPage2===1) {
+      const el=document.querySelector('#device2 .zone-tab.active');
+      if(el) switchZone2(el, currentZone2);
+    }
+    /* Open node popups */
+    if (selectedNode) showNodePopup(selectedNode);
+    if (selectedNode2) showNodePopup2(selectedNode2);
+  }
+
+  function setText(id,val){ const e=document.getElementById(id); if(e) e.textContent=val; }
+  function setW(id,pct){ const e=document.getElementById(id); if(e) e.style.width=pct+'%'; }
+  function setCls(id,cls){ const e=document.getElementById(id); if(e) e.className=cls; }
+
+  setInterval(() => {
+    /* ── Drift hardware values ── */
+    _bat1 = _clamp(_bat1-0.05, 5, 100);
+    _bat2 = _clamp(_bat2-0.04, 5, 100);
+    _cur1 = _drift(_cur1, 5, 55, 85);
+    _cur2 = _drift(_cur2, 5, 48, 80);
+    _sol1 = _drift(_sol1, 3, 10, 24);
+    _sol2 = _drift(_sol2, 3, 8, 22);
+    _rssi1 = Math.round(_drift(_rssi1, 4, -95, -60));
+    _rssi2 = Math.round(_drift(_rssi2, 4, -95, -60));
+
+    /* ── Update device1 on-screen ── */
+    const b1cls='val '+(_bat1>30?'g':_bat1>15?'o':'r');
+    setText('batPct',_bat1.toFixed(2)+'%'); setW('batFill',_bat1); setCls('batPct',b1cls);
+    setText('current',_cur1.toFixed(2)+' mA');
+    setText('solarIn','+'+_sol1.toFixed(2)+' mA');
+    setText('rssi',_rssi1+' dBm');
+    const sl1=_rssi1>-75?'สัญญาณดี':_rssi1>-85?'ปานกลาง':'สัญญาณอ่อน';
+    const sl1c='val '+(_rssi1>-75?'g':_rssi1>-85?'o':'r');
+    setText('sigLabel',sl1); setCls('sigLabel',sl1c);
+    updateSigBars('sigBars',_rssi1);
+    /* ── Update device2 on-screen ── */
+    const b2cls='val '+(_bat2>30?'g':_bat2>15?'o':'r');
+    setText('b-batPct',_bat2.toFixed(2)+'%'); setW('b-batFill',_bat2); setCls('b-batPct',b2cls);
+    setText('b-current',_cur2.toFixed(2)+' mA');
+    setText('b-solarIn','+'+_sol2.toFixed(2)+' mA');
+    setText('b-rssi',_rssi2+' dBm');
+    const sl2=_rssi2>-75?'สัญญาณดี':_rssi2>-85?'ปานกลาง':'สัญญาณอ่อน';
+    const sl2c='val '+(_rssi2>-75?'g':_rssi2>-85?'o':'r');
+    setText('b-sigLabel',sl2); setCls('b-sigLabel',sl2c);
+    updateSigBars('b-sigBars',_rssi2);
+
+    /* ── Fluctuate sensor zoneData (shared) ── */
+    Object.entries(zoneData).forEach(([zone,z])=>{
+      z.soil  = _clamp(z.soil  + (Math.random()-.48)*0.4, 10, 97);
+      z.temp  = _clamp(z.temp  + (Math.random()-.5)*0.08, 20, 40);
+      z.hum   = _clamp(z.hum   + (Math.random()-.5)*0.2, 20, 97);
+      z.light = _clamp(z.light + (Math.random()-.5)*0.5, 10, 100);
+      /* Propagate to nodeData nodes in this zone */
+      Object.entries(nodeData).forEach(([id,n])=>{
+        if(n.zone!==zone) return;
+        n.soil  = _clamp(z.soil  + (Math.random()-.5)*4, 5, 100);
+        n.temp  = _clamp(z.temp  + (Math.random()-.5)*0.8, 18, 42);
+        n.hum   = _clamp(z.hum   + (Math.random()-.5)*3, 15, 98);
+        n.light = _clamp(z.light + (Math.random()-.5)*4, 10, 100);
+        n.rssi  = Math.round(_clamp(n.rssi + (Math.random()-.5)*2, -100, -55));
+      });
+    });
+
+    /* ── Refresh farm page if visible ── */
+    refreshFarmUI();
+
+    /* ── Quick stats (both devices) ── */
+    const vals=Object.values(zoneData);
+    const avgZ=(k)=>vals.reduce((s,z)=>s+z[k],0)/vals.length;
+    setText('qs-temp',avgZ('temp').toFixed(2)+'°');
+    setText('qs-hum', Math.round(avgZ('hum'))+'%');
+    setText('qs-soil',Math.round(avgZ('soil'))+'%');
+    setText('b-qs-temp',avgZ('temp').toFixed(2)+'°');
+    setText('b-qs-hum', Math.round(avgZ('hum'))+'%');
+    setText('b-qs-soil',Math.round(avgZ('soil'))+'%');
+
+    /* ── Device status boxes (below each device) ── */
+    const b1c=_bat1>30?'dsb-v g':_bat1>15?'dsb-v o':'dsb-v r';
+    setText('sp-bat1',_bat1.toFixed(0)+'%'); setCls('sp-bat1',b1c); setW('sp-bat1-bar',_bat1);
+    setText('sp-rssi1',_rssi1+' dBm');
+    const rssi1Col=_rssi1>-75?'dsb-v g':_rssi1>-85?'dsb-v o':'dsb-v r';
+    setCls('sp-rssi1',rssi1Col);
+    setText('sp-cur1', _cur1.toFixed(0)+' mA');
+    setText('sp-sol1', '+'+_sol1.toFixed(0)+' mA');
+    const s1=Math.round(avgZ('soil')); setText('sp-soil1',s1+'%');
+    setCls('sp-soil1', s1>=60?'dsb-v g':s1>=40?'dsb-v o':'dsb-v r');
+    setText('sp-temp1', avgZ('temp').toFixed(2)+'°C');
+
+    const b2c=_bat2>30?'dsb-v b':_bat2>15?'dsb-v o':'dsb-v r';
+    setText('sp-bat2',_bat2.toFixed(0)+'%'); setCls('sp-bat2',b2c); setW('sp-bat2-bar',_bat2);
+    setText('sp-rssi2',_rssi2+' dBm');
+    const rssi2Col=_rssi2>-75?'dsb-v b':_rssi2>-85?'dsb-v o':'dsb-v r';
+    setCls('sp-rssi2',rssi2Col);
+    setText('sp-cur2', _cur2.toFixed(0)+' mA');
+    setText('sp-sol2', '+'+_sol2.toFixed(0)+' mA');
+    const s2=Math.round(avgZ('soil')); setText('sp-soil2',s2+'%');
+    setCls('sp-soil2', s2>=60?'dsb-v b':s2>=40?'dsb-v o':'dsb-v r');
+    setText('sp-temp2', avgZ('temp').toFixed(2)+'°C');
+  }, 2000);
+
+  /* ── Screen toggle ── */
+  function screenToggle(devId) {
+    const o=document.getElementById(devId+'-overlay'); if(o) o.classList.toggle('on');
+  }
+
+  /* ── Init ── */
+  (function init() {
+    const t1=document.querySelector('#device1 .zone-tab.active');
+    if(t1) switchZone(t1,'A');
+    const t2=document.querySelector('#device2 .zone-tab.active');
+    if(t2) switchZone2(t2,'D');
+    buildVKB(1); buildVKB(2);
+  })();
+</script>
+
+</body>
+</html>
