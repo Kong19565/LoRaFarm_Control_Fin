@@ -348,9 +348,29 @@
 
     /* ─── PAGE 3: FARM MAP ─── */
     #mapCanvas, #b-mapCanvas {
-      display: block; width: 234px; height: 278px; cursor: pointer;
+      display: block; width: 234px; height: 278px; cursor: grab;
       image-rendering: -webkit-optimize-contrast;
     }
+    #mapCanvas:active, #b-mapCanvas:active { cursor: grabbing; }
+
+    /* ─── MAP ZOOM CONTROLS ─── */
+    .map-ctrl-btns {
+      position: absolute; right: 5px; bottom: 44px;
+      display: flex; flex-direction: column; gap: 3px; z-index: 18;
+    }
+    .mcb {
+      width: 24px; height: 24px;
+      background: rgba(255,255,255,.88);
+      border: 1px solid #bbb; border-radius: 5px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      color: #333; padding: 0; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.22);
+      font-family: monospace;
+      transition: background .1s;
+    }
+    .mcb:active { background: #e8f5e9; transform: scale(.9); }
+    .mcb.reset { font-size: 11px; color: #555; }
 
     /* ─── NODE POPUP ─── */
     .node-popup {
@@ -736,6 +756,204 @@
     .node-mini-bw { flex: 1; height: 4px; background: #e0e0e0; border-radius: 2px; min-width: 18px; }
     .node-mini-bf { height: 100%; border-radius: 2px; transition: width .5s ease; }
 
+    /* ─── ROLE BADGE ─── */
+    .role-badge {
+      font-size: 7px; font-weight: 800; padding: 2px 7px;
+      border-radius: 8px; letter-spacing: .5px; text-transform: uppercase;
+    }
+    .role-badge.master {
+      background: rgba(46,125,50,.18); color: #1b5e20;
+      border: 1px solid rgba(46,125,50,.35);
+    }
+    .role-badge.slave {
+      background: rgba(1,87,155,.18); color: #01579b;
+      border: 1px solid rgba(1,87,155,.3);
+    }
+
+    /* ─── TASK CARDS ─── */
+    .task-card {
+      border: 1px solid var(--border); border-radius: 7px;
+      padding: 8px 9px; margin-bottom: 6px;
+      background: #fff; border-left: 4px solid #9e9e9e;
+    }
+    .task-card.doing   { border-left-color: var(--orange-mid); background: #fffde7; }
+    .task-card.done    { border-left-color: var(--green); opacity: .82; }
+
+    .task-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; gap: 4px; }
+    .task-title { font-size: 10px; font-weight: 700; color: var(--text); flex: 1; line-height: 1.4; }
+
+    .task-priority {
+      font-size: 7px; font-weight: 800; padding: 1px 5px; border-radius: 4px;
+      display: inline-block; margin-right: 3px;
+    }
+    .task-priority.urgent { background: var(--red-light);    color: var(--red-mid); }
+    .task-priority.normal { background: var(--orange-light); color: var(--orange-mid); }
+    .task-priority.low    { background: var(--green-bg);     color: var(--green); }
+
+    .task-status-chip {
+      font-size: 7px; font-weight: 800; padding: 2px 6px; border-radius: 8px;
+      flex-shrink: 0; white-space: nowrap;
+    }
+    .task-status-chip.pending { background: #f5f5f5; color: #9e9e9e; }
+    .task-status-chip.doing   { background: var(--orange-light); color: var(--orange-mid); }
+    .task-status-chip.done    { background: var(--green-bg); color: var(--green); }
+
+    .task-meta { font-size: 8px; color: var(--text-soft); margin-bottom: 5px; }
+    .task-result-txt {
+      font-size: 9px; background: var(--green-bg); border: 1px solid var(--green-light);
+      border-radius: 5px; padding: 4px 7px; color: #2e7d32;
+      margin-bottom: 4px; line-height: 1.45;
+    }
+    .task-actions { display: flex; gap: 5px; margin-top: 5px; }
+    .task-btn {
+      flex: 1; padding: 5px 0; border: none; border-radius: 6px;
+      font-family: 'Sarabun',sans-serif; font-size: 9px; font-weight: 700; cursor: pointer;
+    }
+    .task-btn.accept { background: var(--orange-light); color: var(--orange-mid); border: 1px solid var(--orange-border); }
+    .task-btn.report { background: var(--green-bg); color: var(--green); border: 1px solid #a5d6a7; }
+    .task-empty {
+      text-align: center; padding: 22px 0;
+      font-size: 10px; color: var(--text-soft);
+    }
+    .task-empty-icon { font-size: 28px; margin-bottom: 6px; }
+
+    /* ─── TASK SUMMARY (ใน status page ลูกน้อง) ─── */
+    .task-summary-card {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--orange-light); border: 1px solid var(--orange-border);
+      border-left: 4px solid var(--orange-mid);
+      border-radius: 6px; padding: 8px 9px; margin-bottom: 7px;
+    }
+    .task-summary-card.none {
+      background: #f5f5f5; border-color: #e0e0e0; border-left-color: #9e9e9e;
+    }
+    .task-summary-card.done-all {
+      background: var(--green-bg); border-color: var(--green-light); border-left-color: var(--green);
+    }
+    .ts-icon { font-size: 18px; flex-shrink: 0; }
+    .ts-info { flex: 1; }
+    .ts-title { font-size: 9.5px; font-weight: 700; color: var(--text-mid); }
+    .ts-sub { font-size: 8px; color: var(--text-soft); margin-top: 1px; }
+
+    /* ─── TASK ASSIGN MODAL (เครื่องหลัก) ─── */
+    .task-assign-modal {
+      display: none; position: absolute; inset: 0; z-index: 55;
+      background: rgba(0,0,0,.6); align-items: center; justify-content: center;
+      border-radius: 6px;
+    }
+    .task-assign-modal.open { display: flex; animation: popupIn .2s ease; }
+    .tam-box {
+      background: #fff; border-radius: 12px; padding: 13px 11px;
+      width: 214px; box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    }
+    .tam-title {
+      font-size: 11px; font-weight: 800; color: var(--green);
+      text-align: center; margin-bottom: 9px; padding-bottom: 6px;
+      border-bottom: 2px solid var(--green-light);
+    }
+    .tam-label { font-size: 9px; font-weight: 700; color: var(--text-mid); margin: 0 0 3px; }
+    .tam-select {
+      width: 100%; padding: 5px 7px; border: 1.5px solid var(--border);
+      border-radius: 6px; font-family: 'Sarabun',sans-serif; font-size: 10px;
+      color: var(--text); margin-bottom: 8px; outline: none; background: #fff;
+    }
+    .tam-select:focus { border-color: var(--green); }
+    .tam-priority-row { display: flex; gap: 4px; margin-bottom: 9px; }
+    .tam-pri-btn {
+      flex: 1; padding: 5px 0; border: 1.5px solid; border-radius: 6px;
+      font-family: 'Sarabun',sans-serif; font-size: 8.5px; font-weight: 700;
+      cursor: pointer; text-align: center; background: #fff; transition: background .15s;
+    }
+    .tam-pri-btn.urgent { border-color: var(--red-border); color: var(--red-mid); }
+    .tam-pri-btn.normal { border-color: var(--orange-border); color: var(--orange-mid); }
+    .tam-pri-btn.low    { border-color: var(--green-light); color: var(--green); }
+    .tam-pri-btn.selected.urgent { background: var(--red-light); }
+    .tam-pri-btn.selected.normal { background: var(--orange-light); }
+    .tam-pri-btn.selected.low    { background: var(--green-bg); }
+    .tam-footer { display: flex; gap: 5px; }
+    .tam-send {
+      flex: 2; padding: 7px 0; background: var(--green); border: none;
+      border-radius: 7px; color: #fff; font-family: 'Sarabun',sans-serif;
+      font-size: 10px; font-weight: 800; cursor: pointer;
+    }
+    .tam-cancel {
+      flex: 1; padding: 7px 0; background: #f5f5f5; border: 1px solid #e0e0e0;
+      border-radius: 7px; color: #757575; font-family: 'Sarabun',sans-serif;
+      font-size: 9px; font-weight: 700; cursor: pointer;
+    }
+
+    /* ─── TASK REPORT MODAL (เครื่องลูกน้อง) ─── */
+    .task-report-modal {
+      display: none; position: absolute; inset: 0; z-index: 55;
+      background: rgba(0,0,0,.6); align-items: center; justify-content: center;
+      border-radius: 6px;
+    }
+    .task-report-modal.open { display: flex; animation: popupIn .2s ease; }
+    .trm-box {
+      background: #fff; border-radius: 12px; padding: 13px 11px;
+      width: 214px; box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    }
+    .trm-title {
+      font-size: 11px; font-weight: 800; color: var(--orange-mid);
+      text-align: center; margin-bottom: 6px; padding-bottom: 6px;
+      border-bottom: 2px solid var(--orange-light);
+    }
+    .trm-task-name {
+      font-size: 9.5px; font-weight: 700; color: var(--text); text-align: center;
+      background: #f5f5f5; border-radius: 6px; padding: 5px 8px; margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .trm-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 7px; }
+    .trm-opt {
+      padding: 7px 4px; background: var(--green-bg); border: 1.5px solid var(--green-light);
+      border-radius: 7px; font-family: 'Sarabun',sans-serif; font-size: 9px; font-weight: 700;
+      color: var(--green); cursor: pointer; text-align: center; line-height: 1.6;
+      transition: opacity .15s, background .15s;
+    }
+    .trm-opt:hover { background: var(--green-light); }
+    .trm-opt.problem { background: var(--orange-light); border-color: var(--orange-border); color: var(--orange-mid); }
+    .trm-opt.problem:hover { background: #ffe0b2; }
+    .trm-opt.help { background: var(--red-light); border-color: var(--red-border); color: var(--red-mid); }
+    .trm-opt.help:hover { background: #ffcdd2; }
+    .trm-input {
+      width: 100%; padding: 5px 7px; border: 1.5px solid var(--border);
+      border-radius: 6px; font-family: 'Sarabun',sans-serif; font-size: 10px;
+      margin-bottom: 8px; resize: none; height: 46px; outline: none; color: var(--text);
+    }
+    .trm-input:focus { border-color: var(--orange-mid); }
+    .trm-footer { display: flex; gap: 5px; }
+    .trm-send {
+      flex: 2; padding: 7px 0; background: var(--orange-mid); border: none;
+      border-radius: 7px; color: #fff; font-family: 'Sarabun',sans-serif;
+      font-size: 10px; font-weight: 800; cursor: pointer;
+    }
+    .trm-cancel {
+      flex: 1; padding: 7px 0; background: #f5f5f5; border: 1px solid #e0e0e0;
+      border-radius: 7px; color: #757575; font-family: 'Sarabun',sans-serif;
+      font-size: 9px; font-weight: 700; cursor: pointer;
+    }
+
+    /* ─── TASK NAV BADGE ─── */
+    .task-d2-badge {
+      position: absolute; top: -3px; right: -6px;
+      background: var(--orange-mid); color: #fff;
+      font-size: 6.5px; font-weight: 800;
+      min-width: 12px; height: 12px; border-radius: 6px; padding: 0 3px;
+      display: none; align-items: center; justify-content: center;
+      line-height: 12px; pointer-events: none;
+    }
+    .task-d2-badge.show { display: flex; }
+
+    /* ─── ASSIGN TASK BUTTON ─── */
+    .btn-assign {
+      flex: 1; padding: 8px 0;
+      background: var(--green-bg); border: 1.5px solid var(--green-light);
+      border-radius: 7px; color: var(--green);
+      font-family: 'Sarabun',sans-serif; font-size: 9.5px; font-weight: 700;
+      cursor: pointer; text-align: center; transition: background .15s;
+    }
+    .btn-assign:hover { background: var(--green-light); }
+
     /* ─── DEVICE COLUMN (device + status box below) ─── */
     .device-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .dev-status-box {
@@ -876,7 +1094,7 @@
     <div class="device-header">
       <span class="device-logo">LoRaFarm</span>
       <div class="hw-led" id="mainLed"></div>
-      <span class="device-logo">v2.1</span>
+      <span class="role-badge master">หัวหน้า</span>
     </div>
 
     <div class="screen">
@@ -1054,6 +1272,12 @@
         <div class="screen-body" style="padding:0; overflow:hidden; background:#a1887f;">
           <canvas id="mapCanvas" width="468" height="556"></canvas>
         </div>
+        <!-- Map zoom controls -->
+        <div class="map-ctrl-btns">
+          <button class="mcb" onclick="adjustMap(1,1.3)" title="ขยาย">＋</button>
+          <button class="mcb" onclick="adjustMap(1,1/1.3)" title="ย่อ">－</button>
+          <button class="mcb reset" onclick="resetMap(1)" title="รีเซ็ต">⌖</button>
+        </div>
         <!-- Node info popup (overlays canvas) -->
         <div id="nodePopup" class="node-popup">
           <div class="popup-head">
@@ -1126,12 +1350,15 @@
             <button class="vkb-toggle" id="d1-vkb-btn" onclick="toggleVKB(1)" title="แป้นพิมพ์">⌨️</button>
             <button class="btn-send" onclick="sendMsg()">ส่ง</button>
           </div>
-          <div class="emergency-row">
+          <div class="emergency-row" style="margin-bottom:5px;">
+            <button class="btn-assign" onclick="openTaskModal()">📋 มอบหมายงาน</button>
             <button class="btn-loc" onclick="shareLocation()">📍 แชร์ตำแหน่ง</button>
-            <div class="sos-hold-wrap" id="d1-sos-wrap">
+          </div>
+          <div class="emergency-row">
+            <div class="sos-hold-wrap" id="d1-sos-wrap" style="flex:1">
               <button class="btn-sos" id="sosBtn"
                 onmousedown="startSOSHold(1)" onmouseup="cancelSOSHold(1)" onmouseleave="cancelSOSHold(1)"
-                ontouchstart="e=>{e.preventDefault();startSOSHold(1)}" ontouchend="cancelSOSHold(1)">🆘 SOS</button>
+                ontouchstart="event.preventDefault();startSOSHold(1)" ontouchend="cancelSOSHold(1)">🆘 SOS</button>
               <div class="sos-prog-bar" id="d1-sos-prog"></div>
             </div>
           </div>
@@ -1173,6 +1400,43 @@
       </div>
     </div>
 
+    <!-- Task Assign Modal (เครื่องหลัก LFC-01) -->
+    <div class="task-assign-modal" id="d1-task-modal">
+      <div class="tam-box">
+        <div class="tam-title">📋 มอบหมายงาน → LFC-02</div>
+        <div class="tam-label">ประเภทงาน</div>
+        <select class="tam-select" id="tam-type" onchange="updateTaskDetail()">
+          <option value="check">🔍 ตรวจสอบแปลง</option>
+          <option value="valve-on">💧 เปิดวาล์วน้ำ</option>
+          <option value="valve-off">🔒 ปิดวาล์วน้ำ</option>
+          <option value="pump-on">⚙️ เปิดปั๊มน้ำ</option>
+          <option value="pump-off">⚙️ ปิดปั๊มน้ำ</option>
+          <option value="repair">🔧 ตรวจซ่อมอุปกรณ์</option>
+          <option value="photo">📸 ถ่ายภาพสภาพพืช</option>
+          <option value="report">📊 รายงานสภาพพื้นที่</option>
+        </select>
+        <div class="tam-label">โซน / รายละเอียด</div>
+        <select class="tam-select" id="tam-detail">
+          <option value="A">โซน A</option>
+          <option value="B">โซน B</option>
+          <option value="C">โซน C</option>
+          <option value="D">โซน D</option>
+          <option value="E">โซน E</option>
+          <option value="F">โซน F</option>
+        </select>
+        <div class="tam-label">ความสำคัญ</div>
+        <div class="tam-priority-row">
+          <button class="tam-pri-btn urgent" id="tp-urgent" onclick="selectPriority('urgent')">🔴 ด่วน</button>
+          <button class="tam-pri-btn normal selected" id="tp-normal" onclick="selectPriority('normal')">🟡 ปกติ</button>
+          <button class="tam-pri-btn low" id="tp-low" onclick="selectPriority('low')">🟢 ไม่ด่วน</button>
+        </div>
+        <div class="tam-footer">
+          <button class="tam-send" onclick="assignTask()">📤 มอบหมาย</button>
+          <button class="tam-cancel" onclick="closeTaskModal()">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+
     </div><!-- /screen -->
 
     <!-- Side buttons device1 (right side) -->
@@ -1190,7 +1454,7 @@
 
     <!-- LFC-01 Realtime Status -->
     <div class="dev-status-box">
-      <div class="dsb-title">🟢 LFC-01 — สถานะ Realtime</div>
+      <div class="dsb-title">🟢 LFC-01 เครื่องหลัก — สถานะ Realtime</div>
       <div class="dsb-grid">
         <div class="dsb-item">
           <span class="dsb-k">🔋 แบตเตอรี่</span>
@@ -1242,7 +1506,7 @@
     <div class="device-header">
       <span class="device-logo">LoRaFarm</span>
       <div class="hw-led" id="b-mainLed"></div>
-      <span class="device-logo">v2.1</span>
+      <span class="role-badge slave">ลูกน้อง</span>
     </div>
     <div class="screen">
       <div class="screen-off" id="d2-overlay" onclick="screenToggle('d2')"></div>
@@ -1264,6 +1528,15 @@
               <div class="row"><span class="lbl">☀️ โซลาร์</span><span class="val o" id="b-solarIn">+15.6 mA</span></div>
             </div>
           </div>
+          <!-- งานปัจจุบัน -->
+          <div id="b-task-summary" class="task-summary-card none">
+            <div class="ts-icon">📭</div>
+            <div class="ts-info">
+              <div class="ts-title">ไม่มีงานที่รอดำเนินการ</div>
+              <div class="ts-sub">พร้อมรับงานจากหัวหน้า</div>
+            </div>
+          </div>
+
           <div class="card">
             <div class="card-title">📡 สัญญาณ</div>
             <div class="row">
@@ -1295,49 +1568,30 @@
         </div>
         <div class="screen-nav">
           <button class="nav-btn active" onclick="goPage2(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
-          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">📋<span class="task-d2-badge"></span></span><span class="nav-label">งาน</span></button>
           <button class="nav-btn" onclick="goPage2(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
           <button class="nav-btn" onclick="goPage2(3)"><span class="nav-icon">💬<span class="nav-badge d2-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
         </div>
       </div>
 
-      <!-- PAGE 2: ฟาร์ม -->
+      <!-- PAGE 2: งานที่ได้รับ -->
       <div class="page" id="b-page-1">
         <div class="screen-header">
-          <span class="screen-title">🌿 ควบคุมฟาร์ม</span>
+          <span class="screen-title">📋 งานที่ได้รับ</span>
           <span class="screen-time" id="b-clock1">10:45</span>
         </div>
         <div class="screen-body">
-          <div class="zone-tabs">
-            <div class="zone-tab" onclick="switchZone2(this,'A')">โซน A</div>
-            <div class="zone-tab" onclick="switchZone2(this,'B')">โซน B</div>
-            <div class="zone-tab" onclick="switchZone2(this,'C')">โซน C</div>
-            <div class="zone-tab active" onclick="switchZone2(this,'D')">โซน D</div>
-            <div class="zone-tab" onclick="switchZone2(this,'E')">โซน E</div>
-            <div class="zone-tab" onclick="switchZone2(this,'F')">โซน F</div>
-          </div>
-          <div class="card">
-            <div class="card-title">📟 เซนเซอร์ — <span id="b-zoneLabel">โซน D</span></div>
-            <div class="sensor-row"><span class="s-icon">🌱</span><div class="s-info"><div class="s-name">ความชื้นดิน</div><div class="s-bar-wrap"><div class="s-bar" id="b-bar-soil" style="width:80%"></div></div></div><span class="s-val" id="b-val-soil">80%</span><span class="s-status g" id="b-stat-soil">ดีมาก</span></div>
-            <button class="detail-toggle-btn" onclick="toggleDetail('d2-sensor-detail',this)">▾ ดูรายละเอียด</button>
-            <div id="d2-sensor-detail" class="detail-section">
-              <div class="sensor-row"><span class="s-icon">🌡️</span><div class="s-info"><div class="s-name">อุณหภูมิ</div><div class="s-bar-wrap"><div class="s-bar" id="b-bar-temp" style="width:54%"></div></div></div><span class="s-val" id="b-val-temp">27.2°C</span><span class="s-status g" id="b-stat-temp">ดีมาก</span></div>
-              <div class="sensor-row"><span class="s-icon">💧</span><div class="s-info"><div class="s-name">ความชื้นอากาศ</div><div class="s-bar-wrap"><div class="s-bar warn" id="b-bar-hum" style="width:85%"></div></div></div><span class="s-val" id="b-val-hum">85%</span><span class="s-status o" id="b-stat-hum">ควรเช็ค</span></div>
-              <div class="sensor-row"><span class="s-icon">☀️</span><div class="s-info"><div class="s-name">ความเข้มแสง</div><div class="s-bar-wrap"><div class="s-bar" id="b-bar-light" style="width:60%"></div></div></div><span class="s-val" id="b-val-light">60%</span><span class="s-status g" id="b-stat-light">ดี</span></div>
+          <div id="b-task-list">
+            <div class="task-empty">
+              <div class="task-empty-icon">📭</div>
+              <div>ยังไม่มีงานที่ได้รับ</div>
+              <div style="font-size:8px;margin-top:3px;color:#bbb;">รอรับงานจากหัวหน้า</div>
             </div>
-          </div>
-          <div class="card">
-            <div class="card-title">🔧 สั่งงาน — <span id="b-actZone">โซน D · มันสำปะหลัง</span></div>
-            <div id="b-act-list"><!-- ถูกสร้างโดย switchZone2() --></div>
-          </div>
-          <div class="card">
-            <div class="card-title">📍 โหนดในโซน — <span id="b-node-count">0 จุด</span></div>
-            <div id="b-node-list"></div>
           </div>
         </div>
         <div class="screen-nav">
           <button class="nav-btn" onclick="goPage2(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
-          <button class="nav-btn active" onclick="goPage2(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn active" onclick="goPage2(1)"><span class="nav-icon">📋<span class="task-d2-badge"></span></span><span class="nav-label">งาน</span></button>
           <button class="nav-btn" onclick="goPage2(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
           <button class="nav-btn" onclick="goPage2(3)"><span class="nav-icon">💬<span class="nav-badge d2-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
         </div>
@@ -1359,6 +1613,12 @@
         <div class="screen-body" style="padding:0;overflow:hidden;background:#a1887f;">
           <canvas id="b-mapCanvas" width="468" height="556"></canvas>
         </div>
+        <!-- Map zoom controls -->
+        <div class="map-ctrl-btns">
+          <button class="mcb" onclick="adjustMap(2,1.3)" title="ขยาย">＋</button>
+          <button class="mcb" onclick="adjustMap(2,1/1.3)" title="ย่อ">－</button>
+          <button class="mcb reset" onclick="resetMap(2)" title="รีเซ็ต">⌖</button>
+        </div>
         <div id="b-nodePopup" class="node-popup">
           <div class="popup-head">
             <div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;"><span class="popup-node-id" id="b-pp-id">A1</span><span class="popup-rssi" id="b-pp-rssi">-68 dBm</span><span class="s-status g" id="b-pp-sigzone" style="font-size:7px;padding:2px 5px;">🟢 สัญญาณดี</span></div><span class="popup-zone" id="b-pp-zone">โซน A</span></div>
@@ -1369,7 +1629,7 @@
         </div>
         <div class="screen-nav">
           <button class="nav-btn" onclick="goPage2(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
-          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">📋<span class="task-d2-badge"></span></span><span class="nav-label">งาน</span></button>
           <button class="nav-btn active" onclick="goPage2(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
           <button class="nav-btn" onclick="goPage2(3)"><span class="nav-icon">💬<span class="nav-badge d2-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
         </div>
@@ -1436,7 +1696,7 @@
         </div>
         <div class="screen-nav">
           <button class="nav-btn" onclick="goPage2(0)"><span class="nav-icon">📊</span><span class="nav-label">สถานะ</span></button>
-          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">🌿</span><span class="nav-label">ฟาร์ม</span></button>
+          <button class="nav-btn" onclick="goPage2(1)"><span class="nav-icon">📋<span class="task-d2-badge"></span></span><span class="nav-label">งาน</span></button>
           <button class="nav-btn" onclick="goPage2(2)"><span class="nav-icon">🗺️</span><span class="nav-label">แผนที่</span></button>
           <button class="nav-btn active" onclick="goPage2(3)"><span class="nav-icon">💬<span class="nav-badge d2-badge"></span></span><span class="nav-label">สื่อสาร</span></button>
         </div>
@@ -1470,6 +1730,25 @@
       </div>
     </div>
 
+    <!-- Task Report Modal (เครื่องลูกน้อง LFC-02) -->
+    <div class="task-report-modal" id="d2-task-report-modal">
+      <div class="trm-box">
+        <div class="trm-title">📊 รายงานผลงาน</div>
+        <div class="trm-task-name" id="trm-task-name">—</div>
+        <div class="trm-opts">
+          <button class="trm-opt" onclick="selectTaskResult('✅ เสร็จสมบูรณ์',this)">✅<br>เสร็จสมบูรณ์</button>
+          <button class="trm-opt problem" onclick="selectTaskResult('⚠️ พบปัญหา',this)">⚠️<br>พบปัญหา</button>
+          <button class="trm-opt" onclick="selectTaskResult('🔄 กำลังดำเนินการ',this)">🔄<br>กำลังดำเนินการ</button>
+          <button class="trm-opt help" onclick="selectTaskResult('🆘 ต้องการความช่วยเหลือ',this)">🆘<br>ขอความช่วยเหลือ</button>
+        </div>
+        <textarea class="trm-input" id="trm-detail-input" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)..."></textarea>
+        <div class="trm-footer">
+          <button class="trm-send" onclick="submitTaskReport2()">📤 ส่งรายงาน</button>
+          <button class="trm-cancel" onclick="closeTaskReport2()">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+
     </div><!-- /screen -->
 
     <!-- Side buttons device2 (left side) -->
@@ -1487,7 +1766,7 @@
 
     <!-- LFC-02 Realtime Status -->
     <div class="dev-status-box blue">
-      <div class="dsb-title">🔵 LFC-02 — สถานะ Realtime</div>
+      <div class="dsb-title">🔵 LFC-02 เครื่องลูกน้อง — สถานะ Realtime</div>
       <div class="dsb-grid">
         <div class="dsb-item">
           <span class="dsb-k">🔋 แบตเตอรี่</span>
@@ -1601,8 +1880,8 @@
     GW:{zone:'-',label:'Gateway',crop:'',          x:117,y:133, gw:true,rssi:-65},
   };
 
-  const ME1 = { x:38, y:51, label:'LFC-01', color:'#1b5e20' };
-  const ME2 = { x:117,y:205, label:'LFC-02', color:'#01579b' };
+  const ME1 = { x:38, y:51, label:'LFC-01', color:'#1b5e20', role:'master' };
+  const ME2 = { x:117,y:205, label:'LFC-02', color:'#01579b', role:'slave' };
 
   /* ── Node list for farm page ── */
   function buildNodeList(zone, dev) {
@@ -1875,8 +2154,8 @@
     const t = getTime();
     const cancelTxt = `✅ SOS ยกเลิกแล้ว — ${label} ปลอดภัยดี`;
     addMsgTo(ownChat, 'me', '✅', 'ระบบ', cancelTxt, t);
-    setTimeout(() => { addMsgTo(otherChat, '', '✅', 'ระบบ', cancelTxt, t); if(other===1&&currentPage!==3) addUnread(1); if(other===2&&currentPage2!==3) addUnread(2); }, 280);
     const other = dev===1?2:1;
+    setTimeout(() => { addMsgTo(otherChat, '', '✅', 'ระบบ', cancelTxt, t); if(other===1&&currentPage!==3) addUnread(1); if(other===2&&currentPage2!==3) addUnread(2); }, 280);
     dismissSOSAlert(other);
     closeNavBanner(other);
     if (dev===1) navTarget2=null; else navTarget1=null;
@@ -2278,29 +2557,67 @@
       ctx.font='5.5px Sarabun,sans-serif';ctx.fillStyle=sCol;ctx.fillText(n.soil.toFixed(2)+'%',n.x,n.y-1);
     });
 
-    /* === USER MARKERS — person icon === */
-    function drawUser(x,y,lbl,col,isMe){
-      /* pulsing halo for own device */
+    /* === USER MARKERS — master: crown / slave: hard hat === */
+    function drawUser(x,y,lbl,col,isMe,role){
+      /* pulsing halo */
       if(isMe){
         const p=(Date.now()%1600)/1600;
         ctx.beginPath();ctx.arc(x,y,14+p*7,0,Math.PI*2);
         ctx.strokeStyle=col;ctx.globalAlpha=0.3*(1-p);ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;
       }
-      /* white badge background */
-      ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.93)';ctx.fill();
-      ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();
+      /* badge background — hexagon for master, circle for slave */
+      if(role==='master'){
+        ctx.beginPath();
+        for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;i===0?ctx.moveTo(x+Math.cos(a)*13,y+Math.sin(a)*13):ctx.lineTo(x+Math.cos(a)*13,y+Math.sin(a)*13);}
+        ctx.closePath();
+        ctx.fillStyle='rgba(255,253,231,.97)';ctx.fill();
+        ctx.strokeStyle='#f9a825';ctx.lineWidth=2.5;ctx.stroke();
+      } else {
+        ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,255,255,.93)';ctx.fill();
+        ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();
+        ctx.setLineDash([3,2]);
+        ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);
+        ctx.strokeStyle=col+'99';ctx.lineWidth=0.8;ctx.stroke();
+        ctx.setLineDash([]);
+      }
       /* head */
       ctx.beginPath();ctx.arc(x,y-4.5,3.5,0,Math.PI*2);
       ctx.fillStyle=col;ctx.fill();
-      /* body — arch shape (shoulders) */
+      /* role indicator above head */
+      if(role==='master'){
+        /* gold crown */
+        ctx.fillStyle='#f9a825';
+        ctx.beginPath();
+        ctx.moveTo(x-5.5,y-12);ctx.lineTo(x-5.5,y-18);
+        ctx.lineTo(x-2.5,y-15);ctx.lineTo(x,y-19.5);
+        ctx.lineTo(x+2.5,y-15);ctx.lineTo(x+5.5,y-18);
+        ctx.lineTo(x+5.5,y-12);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='rgba(180,110,0,.4)';ctx.lineWidth=0.6;ctx.stroke();
+        /* jewel dots */
+        ctx.fillStyle='#fffde7';
+        [[x-4,y-17.5],[x,y-19],[x+4,y-17.5]].forEach(([px,py])=>{
+          ctx.beginPath();ctx.arc(px,py,1.1,0,Math.PI*2);ctx.fill();
+        });
+      } else {
+        /* orange hard hat */
+        ctx.fillStyle='#ef6c00';
+        /* dome */
+        ctx.beginPath();ctx.arc(x,y-9.5,4.8,Math.PI,0,false);ctx.fill();
+        /* brim */
+        ctx.beginPath();
+        ctx.moveTo(x-7,y-8.5);ctx.lineTo(x+7,y-8.5);
+        ctx.lineTo(x+5.5,y-6.8);ctx.lineTo(x-5.5,y-6.8);ctx.closePath();ctx.fill();
+        /* white stripe */
+        ctx.fillStyle='rgba(255,255,255,.35)';
+        ctx.beginPath();ctx.moveTo(x-.8,y-14.2);ctx.lineTo(x+1.5,y-14.2);ctx.lineTo(x+1.5,y-8.5);ctx.lineTo(x-.8,y-8.5);ctx.closePath();ctx.fill();
+      }
+      /* body */
       ctx.beginPath();
-      ctx.moveTo(x-6,y+9);
-      ctx.lineTo(x-6,y+3);
+      ctx.moveTo(x-6,y+9);ctx.lineTo(x-6,y+3);
       ctx.quadraticCurveTo(x-6,y-1,x,y-1);
       ctx.quadraticCurveTo(x+6,y-1,x+6,y+3);
-      ctx.lineTo(x+6,y+9);
-      ctx.closePath();
+      ctx.lineTo(x+6,y+9);ctx.closePath();
       ctx.fillStyle=col;ctx.fill();
       /* label badge */
       ctx.font='bold 7px Sarabun,sans-serif';ctx.textAlign='center';
@@ -2308,8 +2625,8 @@
       ctx.fillStyle='rgba(255,255,255,.92)';roundRect(ctx,x-lw2/2,y+14,lw2,11,3);ctx.fill();
       ctx.fillStyle=col;ctx.fillText(lbl,x,y+24);
     }
-    drawUser(friendPos.x,friendPos.y,friendPos.label,friendPos.color,false);
-    drawUser(myPos.x,myPos.y,myPos.label,myPos.color,true);
+    drawUser(friendPos.x,friendPos.y,friendPos.label,friendPos.color,false,friendPos.role);
+    drawUser(myPos.x,myPos.y,myPos.label,myPos.color,true,myPos.role);
 
     /* === SOIL LEGEND === */
     const lgx=4, lgy=H-38;
@@ -2356,46 +2673,164 @@
     ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
   }
 
-  /* ── Map wrappers (2x HiDPI) ── */
+  /* ── Zoom / Pan state (index 1=LFC-01, 2=LFC-02) ── */
+  const _mz = [null, {s:1,x:0,y:0,drag:null}, {s:1,x:0,y:0,drag:null}];
+  const MAP_ZOOM_MIN=0.5, MAP_ZOOM_MAX=6;
+
+  function _mc(dev){ return document.getElementById(dev===1?'mapCanvas':'b-mapCanvas'); }
+
+  function adjustMap(dev,factor){
+    const m=_mz[dev], c=_mc(dev); if(!c) return;
+    const r=c.getBoundingClientRect();
+    const cx=r.width/2, cy=r.height/2;
+    const ns=Math.max(MAP_ZOOM_MIN,Math.min(MAP_ZOOM_MAX,m.s*factor));
+    m.x=cx-(cx-m.x)/m.s*ns;
+    m.y=cy-(cy-m.y)/m.s*ns;
+    m.s=ns;
+  }
+  function resetMap(dev){ _mz[dev].s=1; _mz[dev].x=0; _mz[dev].y=0; }
+
+  /* ── Map wrappers (2x HiDPI + zoom/pan) ── */
   function drawMap() {
     const c=document.getElementById('mapCanvas'); if(!c) return;
-    const ctx=c.getContext('2d');
+    const m=_mz[1], ctx=c.getContext('2d');
     ctx.clearRect(0,0,c.width,c.height);
     ctx.save(); ctx.scale(2,2);
+    ctx.translate(m.x,m.y); ctx.scale(m.s,m.s);
     drawFarmMap(ctx,c.width/2,c.height/2,ME1,ME2,selectedNode,navTarget1);
     ctx.restore();
     if(currentPage===2) requestAnimationFrame(drawMap);
   }
   function drawMap2() {
     const c=document.getElementById('b-mapCanvas'); if(!c) return;
-    const ctx=c.getContext('2d');
+    const m=_mz[2], ctx=c.getContext('2d');
     ctx.clearRect(0,0,c.width,c.height);
     ctx.save(); ctx.scale(2,2);
+    ctx.translate(m.x,m.y); ctx.scale(m.s,m.s);
     drawFarmMap(ctx,c.width/2,c.height/2,ME2,ME1,selectedNode2,navTarget2);
     ctx.restore();
     if(currentPage2===2) requestAnimationFrame(drawMap2);
   }
 
-  /* ── Canvas tap: CSS coords (no scaling needed — logical=CSS space) ── */
-  function hitNode(mx,my){
+  /* ── Convert CSS click coords → logical map coords ── */
+  function cssToMap(dev,mx,my){ const m=_mz[dev]; return {x:(mx-m.x)/m.s,y:(my-m.y)/m.s}; }
+  function hitNode(lx,ly){
     let h=null;
-    Object.entries(nodeData).forEach(([id,n])=>{ if(Math.hypot(mx-n.x,my-n.y)<14) h=id; });
+    Object.entries(nodeData).forEach(([id,n])=>{ if(Math.hypot(lx-n.x,ly-n.y)<14) h=id; });
     return h;
   }
-  document.getElementById('mapCanvas').addEventListener('click',function(e){
+
+  /* ── Mouse wheel zoom ── */
+  function _wheelZoom(dev,e){
+    e.preventDefault();
+    const c=_mc(dev); if(!c) return;
+    const r=c.getBoundingClientRect();
+    const mx=e.clientX-r.left, my=e.clientY-r.top;
+    const factor=e.deltaY<0?1.15:1/1.15;
+    const m=_mz[dev];
+    const ns=Math.max(MAP_ZOOM_MIN,Math.min(MAP_ZOOM_MAX,m.s*factor));
+    m.x=mx-(mx-m.x)/m.s*ns;
+    m.y=my-(my-m.y)/m.s*ns;
+    m.s=ns;
+  }
+  document.getElementById('mapCanvas').addEventListener('wheel',e=>_wheelZoom(1,e),{passive:false});
+  document.getElementById('b-mapCanvas').addEventListener('wheel',e=>_wheelZoom(2,e),{passive:false});
+
+  /* ── Drag pan ── */
+  function _startDrag(dev,cx,cy){
+    const m=_mz[dev];
+    m.drag={sx:cx,sy:cy,ox:m.x,oy:m.y,moved:false};
+  }
+  function _moveDrag(cx,cy){
+    [1,2].forEach(dev=>{ const m=_mz[dev]; if(!m.drag) return;
+      const dx=cx-m.drag.sx, dy=cy-m.drag.sy;
+      if(Math.hypot(dx,dy)>4) m.drag.moved=true;
+      m.x=m.drag.ox+dx; m.y=m.drag.oy+dy;
+    });
+  }
+  function _endDrag(dev){ const m=_mz[dev]; if(!m.drag) return false; const mv=m.drag.moved; m.drag=null; return mv; }
+
+  document.getElementById('mapCanvas').addEventListener('mousedown',e=>{ if(e.button===0) _startDrag(1,e.clientX,e.clientY); });
+  document.getElementById('b-mapCanvas').addEventListener('mousedown',e=>{ if(e.button===0) _startDrag(2,e.clientX,e.clientY); });
+  document.addEventListener('mousemove',e=>_moveDrag(e.clientX,e.clientY));
+
+  /* ── Tap (mouseup) with drag guard ── */
+  document.getElementById('mapCanvas').addEventListener('mouseup',function(e){
+    const moved=_endDrag(1); if(moved) return;
     const r=this.getBoundingClientRect();
     const mx=e.clientX-r.left, my=e.clientY-r.top;
-    if(Math.hypot(mx-ME2.x,my-ME2.y)<14){ togglePrivateChat(1,'LFC-02'); return; }
-    const hit=hitNode(mx,my);
+    const lp=cssToMap(1,mx,my);
+    if(Math.hypot(lp.x-ME2.x,lp.y-ME2.y)<14){ togglePrivateChat(1,'LFC-02'); return; }
+    const hit=hitNode(lp.x,lp.y);
     if(hit){selectedNode=hit;showNodePopup(hit);}else{selectedNode=null;closeNodePopup();}
   });
-  document.getElementById('b-mapCanvas').addEventListener('click',function(e){
+  document.getElementById('b-mapCanvas').addEventListener('mouseup',function(e){
+    const moved=_endDrag(2); if(moved) return;
     const r=this.getBoundingClientRect();
     const mx=e.clientX-r.left, my=e.clientY-r.top;
-    if(Math.hypot(mx-ME1.x,my-ME1.y)<14){ togglePrivateChat(2,'LFC-01'); return; }
-    const hit=hitNode(mx,my);
+    const lp=cssToMap(2,mx,my);
+    if(Math.hypot(lp.x-ME1.x,lp.y-ME1.y)<14){ togglePrivateChat(2,'LFC-01'); return; }
+    const hit=hitNode(lp.x,lp.y);
     if(hit){selectedNode2=hit;showNodePopup2(hit);}else{selectedNode2=null;closeNodePopup2();}
   });
+  document.addEventListener('mouseup',()=>{ _endDrag(1); _endDrag(2); });
+
+  /* ── Touch: drag + pinch zoom ── */
+  (function(){
+    function setup(canvasId,dev,setNode,showPop,closePop,getFriend){
+      const c=document.getElementById(canvasId); if(!c) return;
+      let pinchInit=null;
+      c.addEventListener('touchstart',e=>{
+        e.preventDefault();
+        const m=_mz[dev];
+        if(e.touches.length===1){
+          const t=e.touches[0];
+          m.drag={sx:t.clientX,sy:t.clientY,ox:m.x,oy:m.y,moved:false};
+          pinchInit=null;
+        } else if(e.touches.length===2){
+          m.drag=null;
+          const a=e.touches[0],b=e.touches[1];
+          const r=c.getBoundingClientRect();
+          pinchInit={dist:Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY),
+            s:m.s,x:m.x,y:m.y,
+            mx:((a.clientX+b.clientX)/2)-r.left,
+            my:((a.clientY+b.clientY)/2)-r.top};
+        }
+      },{passive:false});
+      c.addEventListener('touchmove',e=>{
+        e.preventDefault();
+        const m=_mz[dev];
+        if(e.touches.length===1&&m.drag){
+          const t=e.touches[0];
+          const dx=t.clientX-m.drag.sx,dy=t.clientY-m.drag.sy;
+          if(Math.hypot(dx,dy)>4) m.drag.moved=true;
+          m.x=m.drag.ox+dx; m.y=m.drag.oy+dy;
+        } else if(e.touches.length===2&&pinchInit){
+          const a=e.touches[0],b=e.touches[1];
+          const dist=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
+          const ns=Math.max(MAP_ZOOM_MIN,Math.min(MAP_ZOOM_MAX,pinchInit.s*dist/pinchInit.dist));
+          m.x=pinchInit.mx-(pinchInit.mx-pinchInit.x)/pinchInit.s*ns;
+          m.y=pinchInit.my-(pinchInit.my-pinchInit.y)/pinchInit.s*ns;
+          m.s=ns;
+        }
+      },{passive:false});
+      c.addEventListener('touchend',e=>{
+        const m=_mz[dev];
+        if(m.drag&&!m.drag.moved&&e.changedTouches.length===1){
+          const t=e.changedTouches[0];
+          const r=c.getBoundingClientRect();
+          const mx=t.clientX-r.left,my=t.clientY-r.top;
+          const lp=cssToMap(dev,mx,my);
+          const fr=getFriend();
+          if(Math.hypot(lp.x-fr.x,lp.y-fr.y)<14){ togglePrivateChat(dev,fr.label); }
+          else { const hit=hitNode(lp.x,lp.y); if(hit){setNode(hit);showPop(hit);}else{setNode(null);closePop();} }
+        }
+        m.drag=null; pinchInit=null;
+      });
+    }
+    setup('mapCanvas',1,v=>{selectedNode=v;},showNodePopup,closeNodePopup,()=>ME2);
+    setup('b-mapCanvas',2,v=>{selectedNode2=v;},showNodePopup2,closeNodePopup2,()=>ME1);
+  })();
 
   /* ── Node popup ── */
   function buildPopupSensors(n) {
@@ -2455,10 +2890,11 @@
   function goPage2(n) {
     currentPage2 = n;
     document.querySelectorAll('#device2 .page').forEach((p,i)=>p.classList.toggle('active',i===n));
-    document.querySelectorAll('#device2 .nav-btn').forEach((b,i)=>b.classList.toggle('active',i===n));
+    document.querySelectorAll('#device2 .nav-btn').forEach((b,i)=>b.classList.toggle('active',i%4===n));
     if (n===2) drawMap2();
     else closeNodePopup2();
     if (n===3) clearUnread(2);
+    if (n===1) clearTaskUnread2();
   }
   function switchZone2(el, zone) {
     currentZone2 = zone;
@@ -2639,13 +3075,208 @@
     const o=document.getElementById(devId+'-overlay'); if(o) o.classList.toggle('on');
   }
 
+  /* ─── TASK SYSTEM ─── */
+  let taskList2 = [];
+  let taskIdCtr = 1;
+  let reportingTaskId = null;
+  let selPriority = 'normal';
+  let selTaskResult = null;
+  let taskUnread2 = 0;
+
+  const taskTypeNames = {
+    'check':    '🔍 ตรวจสอบแปลง',
+    'valve-on': '💧 เปิดวาล์วน้ำ',
+    'valve-off':'🔒 ปิดวาล์วน้ำ',
+    'pump-on':  '⚙️ เปิดปั๊มน้ำ',
+    'pump-off': '⚙️ ปิดปั๊มน้ำ',
+    'repair':   '🔧 ตรวจซ่อมอุปกรณ์',
+    'photo':    '📸 ถ่ายภาพสภาพพืช',
+    'report':   '📊 รายงานสภาพพื้นที่',
+  };
+
+  function openTaskModal() {
+    document.getElementById('d1-task-modal').classList.add('open');
+    selPriority = 'normal';
+    ['urgent','normal','low'].forEach(p => {
+      document.getElementById('tp-'+p)?.classList.toggle('selected', p==='normal');
+    });
+    updateTaskDetail();
+  }
+  function closeTaskModal() {
+    document.getElementById('d1-task-modal')?.classList.remove('open');
+  }
+  function selectPriority(p) {
+    selPriority = p;
+    ['urgent','normal','low'].forEach(pr => {
+      document.getElementById('tp-'+pr)?.classList.toggle('selected', pr===p);
+    });
+  }
+  function updateTaskDetail() {
+    const type = document.getElementById('tam-type')?.value;
+    const detailSel = document.getElementById('tam-detail');
+    if (!detailSel) return;
+    const isPump = type === 'pump-on' || type === 'pump-off';
+    if (isPump) {
+      detailSel.innerHTML = '<option value="-">ทุกระบบ</option>';
+    } else {
+      detailSel.innerHTML = ['A','B','C','D','E','F']
+        .map(z => `<option value="${z}">โซน ${z}</option>`).join('');
+    }
+  }
+  function assignTask() {
+    const type = document.getElementById('tam-type')?.value;
+    const detail = document.getElementById('tam-detail')?.value;
+    const typeName = taskTypeNames[type] || type;
+    const zoneStr = (detail && detail !== '-') ? ' โซน ' + detail : '';
+    const title = typeName + zoneStr;
+    const priLabels = {urgent:'🔴 ด่วน', normal:'🟡 ปกติ', low:'🟢 ไม่ด่วน'};
+    const task = {
+      id: taskIdCtr++,
+      type, title,
+      priority: selPriority,
+      priorityLabel: priLabels[selPriority],
+      status: 'pending',
+      result: '', note: '',
+      assignedAt: getTime(),
+    };
+    taskList2.push(task);
+    closeTaskModal();
+    const t = getTime();
+    const msgTxt = `📋 มอบหมายงาน [${task.priorityLabel}]\n${title}`;
+    addMsgTo('chatArea','me','หน','หัวหน้า (LFC-01)',msgTxt,t);
+    setTimeout(() => {
+      addMsgTo('b-chatArea','','หน','LFC-01 (หัวหน้า)',`📋 งานใหม่ [${task.priorityLabel}]\n${title}`,t);
+      if (currentPage2 !== 3) addUnread(2);
+      addTaskUnread2();
+    }, 300);
+    renderTaskList2();
+    updateTaskSummary2();
+  }
+
+  function addTaskUnread2() {
+    taskUnread2++;
+    document.querySelectorAll('.task-d2-badge').forEach(b => {
+      b.textContent = taskUnread2 > 9 ? '9+' : taskUnread2;
+      b.classList.add('show');
+    });
+  }
+  function clearTaskUnread2() {
+    taskUnread2 = 0;
+    document.querySelectorAll('.task-d2-badge').forEach(b => b.classList.remove('show'));
+  }
+
+  function renderTaskList2() {
+    const el = document.getElementById('b-task-list');
+    if (!el) return;
+    const ordered = [
+      ...taskList2.filter(t=>t.status==='doing'),
+      ...taskList2.filter(t=>t.status==='pending'),
+      ...taskList2.filter(t=>t.status==='done'),
+    ];
+    if (!ordered.length) {
+      el.innerHTML = `<div class="task-empty"><div class="task-empty-icon">📭</div><div>ยังไม่มีงานที่ได้รับ</div><div style="font-size:8px;margin-top:3px;color:#bbb;">รอรับงานจากหัวหน้า</div></div>`;
+      return;
+    }
+    el.innerHTML = ordered.map(t => {
+      const sc = t.status;
+      const sl = sc==='done'?'✅ เสร็จแล้ว':sc==='doing'?'🔄 กำลังทำ':'⏳ รอดำเนินการ';
+      return `<div class="task-card ${sc}">
+        <div class="task-head">
+          <span class="task-title">${t.title}</span>
+          <span class="task-status-chip ${sc}">${sl}</span>
+        </div>
+        <div class="task-meta">
+          <span class="task-priority ${t.priority}">${t.priorityLabel}</span>
+          · มอบหมาย ${t.assignedAt}
+        </div>
+        ${t.result ? `<div class="task-result-txt">📊 ${t.result}${t.note?'<br><span style="color:var(--text-soft)">'+t.note+'</span>':''}</div>` : ''}
+        ${sc!=='done' ? `<div class="task-actions">
+          ${sc==='pending'?`<button class="task-btn accept" onclick="acceptTask2(${t.id})">✋ รับงาน</button>`:''}
+          ${sc==='doing'?`<button class="task-btn report" onclick="openTaskReport2(${t.id})">📤 รายงานผล</button>`:''}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function acceptTask2(id) {
+    const t = taskList2.find(t=>t.id===id);
+    if (!t) return;
+    t.status = 'doing';
+    renderTaskList2(); updateTaskSummary2();
+    const time = getTime();
+    const msg = `✋ รับงานแล้ว: ${t.title}`;
+    addMsgTo('b-chatArea','me','ฉัน','ฉัน (LFC-02)',msg,time);
+    setTimeout(() => {
+      addMsgTo('chatArea','','L2','LFC-02 (ลูกน้อง)',msg,time);
+      if (currentPage !== 3) addUnread(1);
+    }, 280);
+  }
+
+  function openTaskReport2(id) {
+    reportingTaskId = id;
+    selTaskResult = null;
+    const t = taskList2.find(t=>t.id===id);
+    if (!t) return;
+    const nameEl = document.getElementById('trm-task-name');
+    if (nameEl) nameEl.textContent = t.title;
+    const inp = document.getElementById('trm-detail-input');
+    if (inp) inp.value = '';
+    document.querySelectorAll('.trm-opt').forEach(b => b.style.opacity = '1');
+    document.getElementById('d2-task-report-modal')?.classList.add('open');
+  }
+  function closeTaskReport2() {
+    document.getElementById('d2-task-report-modal')?.classList.remove('open');
+    reportingTaskId = null; selTaskResult = null;
+  }
+  function selectTaskResult(result, el) {
+    selTaskResult = result;
+    document.querySelectorAll('.trm-opt').forEach(b => b.style.opacity = '0.35');
+    el.style.opacity = '1';
+  }
+  function submitTaskReport2() {
+    if (!selTaskResult) selTaskResult = '✅ เสร็จสมบูรณ์';
+    const t = taskList2.find(t=>t.id===reportingTaskId);
+    if (!t) return;
+    const note = (document.getElementById('trm-detail-input')?.value || '').trim();
+    const result = selTaskResult; // capture before closeTaskReport2 nullifies selTaskResult
+    t.status = 'done'; t.result = result; t.note = note;
+    closeTaskReport2(); renderTaskList2(); updateTaskSummary2();
+    const time = getTime();
+    const msg = `📊 รายงานผล: ${t.title}\n${result}${note?'\n'+note:''}`;
+    addMsgTo('b-chatArea','me','ฉัน','ฉัน (LFC-02)',msg,time);
+    setTimeout(() => {
+      addMsgTo('chatArea','','L2','LFC-02 (ลูกน้อง)',msg,time);
+      if (currentPage !== 3) addUnread(1);
+    }, 280);
+  }
+
+  function updateTaskSummary2() {
+    const el = document.getElementById('b-task-summary');
+    if (!el) return;
+    const doing = taskList2.find(t=>t.status==='doing');
+    const pending = taskList2.filter(t=>t.status==='pending');
+    const allDone = taskList2.length > 0 && taskList2.every(t=>t.status==='done');
+    if (doing) {
+      el.className = 'task-summary-card';
+      el.innerHTML = `<div class="ts-icon">🔄</div><div class="ts-info"><div class="ts-title">${doing.title}</div><div class="ts-sub">กำลังดำเนินการ${pending.length?' · รองาน '+pending.length+' รายการ':''}</div></div>`;
+    } else if (pending.length) {
+      el.className = 'task-summary-card';
+      el.innerHTML = `<div class="ts-icon">⏳</div><div class="ts-info"><div class="ts-title">${pending[0].title}</div><div class="ts-sub">รอรับงาน${pending.length>1?' · และอีก '+(pending.length-1)+' รายการ':''}</div></div>`;
+    } else if (allDone) {
+      el.className = 'task-summary-card done-all';
+      el.innerHTML = `<div class="ts-icon">✅</div><div class="ts-info"><div class="ts-title">ทำงานเสร็จทุกรายการ</div><div class="ts-sub">รอรับงานใหม่จากหัวหน้า</div></div>`;
+    } else {
+      el.className = 'task-summary-card none';
+      el.innerHTML = `<div class="ts-icon">📭</div><div class="ts-info"><div class="ts-title">ไม่มีงานที่รอดำเนินการ</div><div class="ts-sub">พร้อมรับงานจากหัวหน้า</div></div>`;
+    }
+  }
+
   /* ── Init ── */
   (function init() {
     const t1=document.querySelector('#device1 .zone-tab.active');
     if(t1) switchZone(t1,'A');
-    const t2=document.querySelector('#device2 .zone-tab.active');
-    if(t2) switchZone2(t2,'D');
     buildVKB(1); buildVKB(2);
+    updateTaskSummary2();
   })();
 </script>
 
